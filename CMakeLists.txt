@@ -1,14 +1,34 @@
-cmake_minimum_required(VERSION 3.18)
+cmake_minimum_required(VERSION 3.24)
 project(start LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 20)
-list(APPEND CMAKE_PREFIX_PATH "C:/msys64/ucrt64")
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(raylib CONFIG REQUIRED)
+# Raylib aus MSYS2-UCRT finden                                       
+find_package(raylib 5 REQUIRED)
 
-add_executable(start src/main.cpp)
+# --------------------------------------------------------------------
+#  Quell-Dateien
+# --------------------------------------------------------------------
+add_executable(start
+    src/main.cpp
+    src/menu.cpp
+    include/menu.h
+)
 
-target_include_directories(start PRIVATE
-    $<TARGET_PROPERTY:raylib,INTERFACE_INCLUDE_DIRECTORIES>)
 
 target_link_libraries(start PRIVATE raylib)
+
+target_include_directories(start PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
+target_link_libraries(start PRIVATE raylib)
+
+# --------------------------------------------------------------------
+#  Assets kopieren (Bilder, Fonts, Sounds …)
+# --------------------------------------------------------------------
+add_custom_command(TARGET start POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${CMAKE_CURRENT_SOURCE_DIR}/assets
+            $<TARGET_FILE_DIR:start>/assets)

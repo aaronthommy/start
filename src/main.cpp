@@ -1,56 +1,41 @@
-#include "raylib.h"
+#include "raylib.h"   // <-- neu
+#include "menu.h" 
+
+enum class GameState { MENU, PLAY, EXIT };
 
 int main() {
-    const int screenW = 960;
-    const int screenH = 540;
-    InitWindow(screenW, screenH, "Jump-and-Run-Prototype");
+    InitWindow(960, 540, "Start Screen Demo");
     SetTargetFPS(60);
 
-    Texture2D playerTex = LoadTexture("assets/player.png");
+    GameState state = GameState::MENU;
+    Menu menu;
+    menu.load();
 
-    // --- Spielerzustand --------------------------------------------------
-    Vector2 pos = {100, 380};       // Startposition
-    Vector2 vel = {0, 0};           // Geschwindigkeit (x,y)
-    const float runSpeed  = 200.0f; // px/s seitwärts
-    const float jumpSpeed = 350.0f; // Start-Impuls nach oben
-    const float gravity   = 800.0f; // px/s²
-    const float groundY   = 380;    // einfaches „Boden-Level“
-    bool onGround = true;
-
-    while (!WindowShouldClose()) {
-        float dt = GetFrameTime();
-
-        // --- Eingabe ------------------------------------------------------
-        if (IsKeyDown(KEY_RIGHT)) vel.x =  runSpeed;
-        else if (IsKeyDown(KEY_LEFT)) vel.x = -runSpeed;
-        else vel.x = 0;
-
-        if (IsKeyPressed(KEY_SPACE) && onGround) {
-            vel.y = -jumpSpeed;     // negativer Wert ⇒ nach oben
-            onGround = false;
-        }
-
-        // --- Physik -------------------------------------------------------
-        vel.y += gravity * dt;      // Schwerkraft
-        pos.x += vel.x * dt;
-        pos.y += vel.y * dt;
-
-        // --- Boden-Kollision ---------------------------------------------
-        if (pos.y >= groundY) {
-            pos.y = groundY;
-            vel.y = 0;
-            onGround = true;
-        }
-
-        // --- Zeichnen -----------------------------------------------------
+    while (!WindowShouldClose() && state != GameState::EXIT) {
         BeginDrawing();
-        ClearBackground({30, 30, 30, 255});
-        DrawTexture(playerTex, (int)pos.x, (int)pos.y, WHITE);
-        DrawText("Pfeile = Laufen, SPACE = Springen, ESC = Beenden", 20, 20, 20, RAYWHITE);
+        ClearBackground(DARKGRAY);
+
+        switch (state) {
+            case GameState::MENU: {
+                MenuResult r = menu.update();
+                menu.draw();
+                if      (r == MenuResult::START_GAME) state = GameState::PLAY;
+                else if (r == MenuResult::EXIT)       state = GameState::EXIT;
+            } break;
+
+            case GameState::PLAY:
+                // Dein bisheriger Spiel-Code hier
+                DrawText("Hier kommt dein Spiel!", 300, 250, 20, LIGHTGRAY);
+                if (IsKeyPressed(KEY_ESCAPE)) state = GameState::MENU;
+                break;
+
+            default: break;
+        }
+
         EndDrawing();
     }
 
-    UnloadTexture(playerTex);
+    menu.unload();
     CloseWindow();
     return 0;
 }
