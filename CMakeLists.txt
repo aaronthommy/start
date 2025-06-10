@@ -37,6 +37,16 @@ target_include_directories(jump-run PRIVATE
     ${NLOHMANN_JSON_INCLUDE_DIR}
 )
 
+# C++17 für std::filesystem
+target_compile_features(jump-run PRIVATE cxx_std_17)
+
+# Compiler-Warnungen
+if(MSVC)
+    target_compile_options(jump-run PRIVATE /W4)
+else()
+    target_compile_options(jump-run PRIVATE -Wall -Wextra -Wpedantic)
+endif()
+
 # ------------------------------------------------------------
 #  Link-Libs
 # ------------------------------------------------------------

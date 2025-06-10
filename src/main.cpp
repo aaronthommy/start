@@ -3,8 +3,6 @@
 #include "screens/MenuScreen.h"
 #include "SpriteUtils.h"
 
-Texture2D loadSprite(const char *path, int frames);
-
 int main()
 {
 
@@ -15,12 +13,17 @@ int main()
     InitAudioDevice();
 
     Texture2D bg = LoadTexture("assets/ui/background.png");
-    Texture2D comet = loadSprite("assets/sprites/fx/comet-left-100x100.png", 16);
+    Texture2D comet = loadSprite("assets/sprites/fx/comet-right-100x100.png", 16);
     Texture2D duck = loadSprite("assets/sprites/enemies/duck-100x100.png", 20);
     Texture2D hero = loadSprite("assets/sprites/player/player.png", 20);
     float cometX = GetScreenWidth() + 64;
 
     SetTargetFPS(120);
+
+    int cometFrame = 0;
+    int duckFrame = 0;
+    int heroFrame = 0;
+    float animTime = 0.0f;
 
     GameState state = GameState::INTRO_MENU;
 
@@ -31,8 +34,11 @@ int main()
                                            {"Optionen", [&] { /* später */ }}});
 
     MenuScreen::Style s;
-    s.vGap = 60;
-    s.origin = {0, 0}; // exakt zentriert
+    s.vGap = 70;                     // Mehr Platz zwischen Einträgen
+    s.origin = {0, -50};             // Leicht nach oben verschieben
+    s.normal = {200, 200, 200, 255}; // Hellgrau statt weiß
+    s.hover = {255, 220, 100, 255};  // Warmes Gelb
+    s.active = {255, 150, 50, 255};  // Orange
     introMenu.setStyle(s);
 
     // ---------- Haupt-Menü ---------- //
@@ -54,7 +60,19 @@ int main()
             cometX = GetScreenWidth() + rand() % 200;
 
         BeginDrawing();
+        animTime += GetFrameTime();
+        if (animTime >= 0.1f)
+        { // 10 FPS für Animationen
+            animTime = 0.0f;
+            cometFrame = (cometFrame + 1) % 16;
+            duckFrame = (duckFrame + 1) % 20;
+            heroFrame = (heroFrame + 1) % 20;
+        }
         ClearBackground(DARKGRAY);
+        DrawTexturePro(bg,
+                       {0, 0, (float)bg.width, (float)bg.height},
+                       {0, 0, (float)GetScreenWidth(), (float)GetScreenHeight()},
+                       {0, 0}, 0, WHITE);
 
         switch (state)
         {
@@ -89,21 +107,30 @@ int main()
         default:
             break;
         }
+
         DrawTexturePro(bg,
                        {0, 0, (float)bg.width, -(float)bg.height},
                        {0, 0, (float)GetScreenWidth(), (float)GetScreenHeight()},
                        {0, 0}, 0, WHITE);
-        DrawTextureEx(comet, {cometX, 120}, -45, 6, WHITE); // diagonaler Flug
-        DrawTextureEx(
-            duck,
-            {48.0f,
-             static_cast<float>(GetScreenHeight()) - duck.height * 6.0f},
-            0.0f, 6.0f, WHITE);
-        DrawTextureEx(
-            hero,
-            {static_cast<float>(GetScreenWidth()) - hero.width * 6.0f - 48.0f,
-             static_cast<float>(GetScreenHeight()) - hero.height * 6.0f},
-            0.0f, 6.0f, WHITE);
+
+        // Animationen
+        Rectangle cometSrc = {(float)(cometFrame * 100), 0, 100, 100};
+        DrawTexturePro(comet, cometSrc,
+                       {cometX, 120, 300, 300}, // 3x Skalierung
+                       {150, 150}, -45, WHITE);
+
+        // Duck animiert
+        Rectangle duckSrc = {(float)(duckFrame * 100), 0, 100, 100};
+        DrawTexturePro(duck, duckSrc,
+                       {48, (float)(GetScreenHeight() - 300), 300, 300},
+                       {0, 0}, 0, WHITE);
+
+        // Hero animiert
+        Rectangle heroSrc = {(float)(heroFrame * 100), 0, 100, 100};
+        DrawTexturePro(hero, heroSrc,
+                       {(float)(GetScreenWidth() - 348), (float)(GetScreenHeight() - 300), 300, 300},
+                       {0, 0}, 0, WHITE);
+
         EndDrawing();
     }
 
