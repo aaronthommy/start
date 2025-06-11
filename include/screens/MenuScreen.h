@@ -31,7 +31,7 @@ public:
 private:
     Texture2D title{};
     Font font{};
-    Sound sfxMove{}, sfxSelect{};
+    Sound sfxGame{}, sfxSelect{};
     std::vector<Item> entries;
     int selected = 0;
     Style style;

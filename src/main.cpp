@@ -5,12 +5,17 @@
 
 int main()
 {
+    Music backgroundMusic;
 
     SetConfigFlags(FLAG_FULLSCREEN_MODE | FLAG_VSYNC_HINT);
     int w = GetMonitorWidth(GetCurrentMonitor());
     int h = GetMonitorHeight(GetCurrentMonitor());
     InitWindow(w, h, "Jump-Run");
     InitAudioDevice();
+
+    backgroundMusic = LoadMusicStream("assets/sfx/intro-game-sound.wav");
+    SetMusicVolume(backgroundMusic, 0.3f);
+    PlayMusicStream(backgroundMusic);
 
     Texture2D bg = LoadTexture("assets/ui/background.png");
     Texture2D comet = loadSprite("assets/sprites/fx/comet-right-100x100.png", 16);
@@ -74,6 +79,7 @@ int main()
                        {0, 0, (float)GetScreenWidth(), (float)GetScreenHeight()},
                        {0, 0}, 0, WHITE);
 
+        UpdateMusicStream(backgroundMusic);
         switch (state)
         {
         case GameState::INTRO_MENU:
@@ -136,6 +142,8 @@ int main()
 
     introMenu.unload();
     mainMenu.unload();
+    StopMusicStream(backgroundMusic);
+    UnloadMusicStream(backgroundMusic);
     CloseAudioDevice();
     CloseWindow();
     return 0;

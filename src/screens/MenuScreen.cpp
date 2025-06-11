@@ -5,17 +5,16 @@ void MenuScreen::load(const char *titlePath,
                       const std::vector<Item> &items)
 {
     title = LoadTexture(titlePath);
-    font = LoadFont("assets/fonts/first_font.ttf");
-    sfxMove = LoadSound("assets/sfx/game_select_new.wav");
+    font  = LoadFont("assets/fonts/first_font.ttf");
     sfxSelect = LoadSound("assets/sfx/game_select_new.wav");
-    entries = items;
+    entries   = items;
 }
 
 void MenuScreen::unload()
 {
     UnloadTexture(title);
     UnloadFont(font);
-    UnloadSound(sfxMove);
+    UnloadSound(sfxGame);
     UnloadSound(sfxSelect);
 }
 
@@ -23,6 +22,7 @@ MenuScreen::Style MenuScreen::defaultStyle{};
 
 void MenuScreen::update()
 {
+
     // Tastatur
     if (IsKeyPressed(KEY_UP))
     {
