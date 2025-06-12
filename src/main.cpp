@@ -3,6 +3,7 @@
 #include "screens/LevelSelectScreen.h"
 #include "core/LevelManager.h"
 #include "screens/MenuScreen.h"
+#include "screens/GameScreen.h"
 #include "SpriteUtils.h"
 
 int main()
@@ -65,7 +66,13 @@ int main()
                                           {"Zurück", [&]
                                            { state = GameState::INTRO_MENU; }}});
 
-
+    // ---------- Spiel-Bildschirm ---------- //
+    GameScreen gameScreen;
+    gameScreen.setOnFinish([&]
+                           {
+        state = GameState::MAIN_MENU;
+        // Wichtig: Entlade das Level, wenn wir es verlassen
+        gameScreen.unload(); });
 
     int currentLevel = 0;
     levelSelect.setOnBack([&]
@@ -73,9 +80,10 @@ int main()
     levelSelect.setOnStart([&](int idx)
                            {
         currentLevel = idx;
+        // Lade das Level im GameScreen
+        gameScreen.load(&levelManager, currentLevel);
         state = GameState::PLAY; });
     levelSelect.load(&levelManager);
-
 
     while (!WindowShouldClose() && state != GameState::EXIT)
     {
@@ -123,9 +131,12 @@ int main()
             break;
 
         case GameState::PLAY:
-            DrawText(TextFormat("Playing Level %d", currentLevel + 1), 100, 100, 20, RAYWHITE);DrawText("Gameplay (stub)", 100, 100, 20, RAYWHITE);
+            DrawText(TextFormat("Playing Level %d", currentLevel + 1), 100, 100, 20, RAYWHITE);
+            DrawText("Gameplay (stub)", 100, 100, 20, RAYWHITE);
             if (IsKeyPressed(KEY_ESCAPE))
                 state = GameState::MAIN_MENU;
+            gameScreen.update(); // <-- Logik an GameScreen übergeben
+            gameScreen.draw();   // <-- Zeichnen an GameScreen übergeben
             break;
 
         default:

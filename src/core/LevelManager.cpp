@@ -3,7 +3,7 @@
 void LevelManager::init()
 {
     m_levels.clear();
-    for (int i = 1; i <= 10; ++i) {
+    for (int i = 1; i <= 6; ++i) {
         LevelInfo info;
         info.id = i;
         info.name = "Level " + std::to_string(i);

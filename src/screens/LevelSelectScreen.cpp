@@ -11,7 +11,7 @@ void LevelSelectScreen::load(LevelManager* manager)
                 onStart(i);
         }});
     }
-    items.push_back({"Zur\xC3\xBCck", [this]() {
+    items.push_back({"Zuruck", [this]() {
         if (onBack)
             onBack();
     }});
