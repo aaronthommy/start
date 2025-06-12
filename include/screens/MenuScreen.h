@@ -17,6 +17,7 @@ public:
     {
         int vGap = 52;             // vertikaler Abstand
         Vector2 origin = {0, 260}; // Start-Y wird dynamisch zentriert
+        float topMargin = 0.0f;
         Color normal = RAYWHITE;
         Color hover = {0xFF, 0xCE, 0x65, 0xFF};  // warmes Gelb
         Color active = {0xFF, 0x9D, 0x1F, 0xFF}; // Orange

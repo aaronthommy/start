@@ -5,6 +5,7 @@
 #include "raylib.h"
 #include "core/LevelManager.h"
 #include <functional>
+#include "core/Player.h" 
 
 class GameScreen {
 public:
@@ -22,5 +23,5 @@ private:
     int currentLevel = -1;
     Texture2D background;
     std::function<void()> onFinish;
-    // Hier kommen später Spieler, Gegner etc. hinzu
+    Player player; 
 };

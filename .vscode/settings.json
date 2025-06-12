@@ -61,6 +61,8 @@
     "CMAKE_EXPORT_COMPILE_COMMANDS": "YES"
   },
   "files.associations": {
-    "vector": "cpp"
+    "*.embeddedhtml": "html",
+    "vector": "cpp",
+    "functional": "cpp"
   }
 }

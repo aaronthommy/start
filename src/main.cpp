@@ -15,12 +15,13 @@ int main()
     int h = GetMonitorHeight(GetCurrentMonitor());
     InitWindow(w, h, "Jump-Run");
     InitAudioDevice();
+    SetExitKey(0);
 
     backgroundMusic = LoadMusicStream("assets/sfx/intro-game-sound.wav");
-    SetMusicVolume(backgroundMusic, 0.1f);
+    SetMusicVolume(backgroundMusic, 0.7f);
     PlayMusicStream(backgroundMusic);
 
-    Texture2D bg = LoadTexture("assets/ui/background.png");
+    Texture2D bg = LoadTexture("assets/ui/background-menu.png");
     Texture2D comet = loadSprite("assets/sprites/fx/comet-right-100x100.png", 16);
     Texture2D duck = loadSprite("assets/sprites/enemies/duck-100x100.png", 20);
     Texture2D hero = loadSprite("assets/sprites/player/player.png", 20);
@@ -52,12 +53,13 @@ int main()
     s.normal = {200, 200, 200, 255}; // Hellgrau statt weiß
     s.hover = {255, 220, 100, 255};  // Warmes Gelb
     s.active = {255, 150, 50, 255};  // Orange
+    s.topMargin = 150.0f;
     introMenu.setStyle(s);
 
     // ---------- Haupt-Menü ---------- //
     MenuScreen mainMenu;
     mainMenu.setStyle(s);
-    mainMenu.load("assets/ui/title.png", {{"Spiel starten", [&]
+    mainMenu.load("", {{"Spiel starten", [&]
                                            { state = GameState::PLAY; }},
                                           {"Level auswählen", [&]
                                            { state = GameState::LEVEL_SELECT; }},
@@ -143,10 +145,6 @@ int main()
             break;
         }
 
-        DrawTexturePro(bg,
-                       {0, 0, (float)bg.width, -(float)bg.height},
-                       {0, 0, (float)GetScreenWidth(), (float)GetScreenHeight()},
-                       {0, 0}, 0, WHITE);
 
         // Animationen
         Rectangle cometSrc = {(float)(cometFrame * 100), 0, 100, 100};
