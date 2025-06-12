@@ -5,7 +5,7 @@ void MenuScreen::load(const char *titlePath,
                       const std::vector<Item> &items)
 {
     title = LoadTexture(titlePath);
-    font = LoadFont("assets/fonts/first_font.ttf");
+    font = LoadFont("assets/fonts/Silkscreen-Bold.ttf");
     sfxSelect = LoadSound("assets/sfx/game_select_new.wav");
     entries = items;
 }
