@@ -1,5 +1,6 @@
 #include "screens/MenuScreen.h"
 #include <cmath>
+#include "config.h"
 
 void MenuScreen::load(const char *titlePath,
                       const std::vector<Item> &items)
@@ -104,10 +105,10 @@ void MenuScreen::draw() const
     {
         Color col = (i == selected) ? style.active : style.normal;
 
-
         // Text zentrieren
         Vector2 textSize = MeasureTextEx(font, entries[i].text.c_str(), 32, 0);
-        float textX = (GetScreenWidth() - textSize.x) / 2;
+        float textX = (VIRTUAL_SCREEN_WIDTH - textSize.x) / 2;
+        float startY = (VIRTUAL_SCREEN_HEIGHT - totalH) * 0.6f + style.origin.y;
         Vector2 pos{textX, startY + i * style.vGap + style.topMargin};
 
         // Hover-Effekt mit leichter Animation
