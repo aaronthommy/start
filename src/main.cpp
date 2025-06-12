@@ -14,7 +14,7 @@ int main()
     InitAudioDevice();
 
     backgroundMusic = LoadMusicStream("assets/sfx/intro-game-sound.wav");
-    SetMusicVolume(backgroundMusic, 0.3f);
+    SetMusicVolume(backgroundMusic, 0.1f);
     PlayMusicStream(backgroundMusic);
 
     Texture2D bg = LoadTexture("assets/ui/background.png");

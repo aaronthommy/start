@@ -33,7 +33,7 @@ add_executable(jump-run ${SRC})
 target_include_directories(jump-run PRIVATE
     include
     include/core
-    external/raygui              # enthält raygui.h
+    external/raygui
     ${NLOHMANN_JSON_INCLUDE_DIR}
 )
 
