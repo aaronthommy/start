@@ -1,5 +1,7 @@
 #include "raylib.h"
 #include "core/GameState.h"
+#include "screens/LevelSelectScreen.h"
+#include "core/LevelManager.h"
 #include "screens/MenuScreen.h"
 #include "SpriteUtils.h"
 
@@ -32,6 +34,11 @@ int main()
 
     GameState state = GameState::INTRO_MENU;
 
+    LevelManager levelManager;
+    levelManager.init();
+
+    LevelSelectScreen levelSelect;
+
     // ---------- Intro-Menu ---------- //
     MenuScreen introMenu;
     introMenu.load("assets/ui/title.png", {{"Start", [&]
@@ -57,6 +64,18 @@ int main()
                                            { state = GameState::SHOP; }},
                                           {"Zurück", [&]
                                            { state = GameState::INTRO_MENU; }}});
+
+
+
+    int currentLevel = 0;
+    levelSelect.setOnBack([&]
+                          { state = GameState::MAIN_MENU; });
+    levelSelect.setOnStart([&](int idx)
+                           {
+        currentLevel = idx;
+        state = GameState::PLAY; });
+    levelSelect.load(&levelManager);
+
 
     while (!WindowShouldClose() && state != GameState::EXIT)
     {
@@ -93,9 +112,8 @@ int main()
             break;
 
         case GameState::LEVEL_SELECT:
-            DrawText("Level-Select (stub)", 100, 100, 20, RAYWHITE);
-            if (IsKeyPressed(KEY_BACKSPACE))
-                state = GameState::MAIN_MENU;
+            levelSelect.update();
+            levelSelect.draw();
             break;
 
         case GameState::SHOP:
@@ -105,7 +123,7 @@ int main()
             break;
 
         case GameState::PLAY:
-            DrawText("Gameplay (stub)", 100, 100, 20, RAYWHITE);
+            DrawText(TextFormat("Playing Level %d", currentLevel + 1), 100, 100, 20, RAYWHITE);DrawText("Gameplay (stub)", 100, 100, 20, RAYWHITE);
             if (IsKeyPressed(KEY_ESCAPE))
                 state = GameState::MAIN_MENU;
             break;
@@ -142,6 +160,7 @@ int main()
 
     introMenu.unload();
     mainMenu.unload();
+    levelSelect.unload();
     StopMusicStream(backgroundMusic);
     UnloadMusicStream(backgroundMusic);
     CloseAudioDevice();
