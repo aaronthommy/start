@@ -17,12 +17,7 @@ const int VIRTUAL_SCREEN_HEIGHT = 1080;
 int main()
 {
     // --- Fenster initialisieren (wie bisher) ---
-    SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIGHDPI);
-
-    InitWindow(VIRTUAL_SCREEN_WIDTH, VIRTUAL_SCREEN_HEIGHT, "Jump-Run"); 
-
-    ToggleFullscreen();
-
+    SetConfigFlags(FLAG_FULLSCREEN_MODE | FLAG_VSYNC_HINT);
     int w = GetMonitorWidth(GetCurrentMonitor());
     int h = GetMonitorHeight(GetCurrentMonitor());
     InitWindow(w, h, "Jump-Run");
