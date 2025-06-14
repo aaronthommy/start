@@ -11,8 +11,8 @@
 
 // NEU: Definiere die "ideale" Auflösung für dein Spiel.
 // Alle Positionen und Größen beziehen sich ab jetzt hierauf.
-const int VIRTUAL_SCREEN_WIDTH = 1920;
-const int VIRTUAL_SCREEN_HEIGHT = 1080;
+const int VIRTUAL_SCREEN_WIDTH = 2048;
+const int VIRTUAL_SCREEN_HEIGHT = 1280;
 
 int main()
 {
