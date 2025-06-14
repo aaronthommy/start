@@ -8,6 +8,12 @@ void LevelManager::init()
         info.id = i;
         info.name = "Level " + std::to_string(i);
         info.file = "data/levels/level" + std::to_string(i) + ".json";
+        
+        // Hinzugefügt: Weise jedem Level einen Hintergrund zu.
+        // Du kannst hier für jedes Level einen anderen Pfad verwenden,
+        // z.B. "assets/ui/background-level1.png" etc.
+        info.backgroundPath = "assets/ui/background.png"; 
+        
         m_levels.push_back(info);
     }
 }

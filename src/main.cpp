@@ -6,46 +6,42 @@
 #include "core/LevelManager.h"
 #include "screens/MenuScreen.h"
 #include "screens/GameScreen.h"
-#include <cmath>
+#include "config.h"
 #include "SpriteUtils.h"
-
-// NEU: Definiere die "ideale" Auflösung für dein Spiel.
-// Alle Positionen und Größen beziehen sich ab jetzt hierauf.
-const int VIRTUAL_SCREEN_WIDTH = 1920;
-const int VIRTUAL_SCREEN_HEIGHT = 1080;
+#include <cmath>
 
 int main()
 {
+    // --- Fenster & Audio Initialisierung (DEINE VERSION) ---
     SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIGHDPI);
     InitWindow(VIRTUAL_SCREEN_WIDTH, VIRTUAL_SCREEN_HEIGHT, "Jump-Run");
-    ToggleFullscreen();
-    int w = GetMonitorWidth(GetCurrentMonitor());
-    int h = GetMonitorHeight(GetCurrentMonitor());
-    InitWindow(w, h, "Jump-Run");
+    ToggleFullscreen(); // Auf echten Vollbildmodus umschalten
+    
+    // HINWEIS: InitWindow wird von raylib nur einmal effektiv ausgeführt. 
+    // Der zweite Aufruf in deinem Originalcode war wahrscheinlich überflüssig, 
+    // da ToggleFullscreen() das Fenster bereits an den Monitor anpasst. 
+    // Wir lassen es bei dieser sauberen Sequenz.
+    
     InitAudioDevice();
     SetExitKey(0);
     SetTargetFPS(120);
 
-    // NEU: Erstelle die virtuelle Leinwand (RenderTexture)
+    // Virtuelle Leinwand für Letterboxing erstellen
     RenderTexture2D target = LoadRenderTexture(VIRTUAL_SCREEN_WIDTH, VIRTUAL_SCREEN_HEIGHT);
-    // Sorge dafür, dass die Textur schön gefiltert wird, wenn sie skaliert wird
     SetTextureFilter(target.texture, TEXTURE_FILTER_BILINEAR);
 
-    // --- Assets und Spielobjekte laden (wie bisher) ---
     Music backgroundMusic = LoadMusicStream("assets/sfx/intro-game-sound.wav");
     PlayMusicStream(backgroundMusic);
     SetMusicVolume(backgroundMusic, 0.7f);
 
     GameState state = GameState::INTRO_MENU;
 
-    // --- Menüs und Screens einrichten (wie bisher) ---
+    // --- Manager und Screens einrichten (REPARIERTE VERSION) ---
     LevelManager levelManager;
     levelManager.init();
 
     MenuScreen introMenu;
-    introMenu.load("assets/ui/title.png", {{"Start", [&]
-                                            { state = GameState::MAIN_MENU; }},
-                                           {"Optionen", [&] {}}});
+    introMenu.load("assets/ui/title.png", {{"Start", [&]{ state = GameState::MAIN_MENU; }}, {"Optionen", [&] {}}});
 
     MenuScreen::Style s;
     s.vGap = 70;
@@ -58,36 +54,35 @@ int main()
 
     MenuScreen mainMenu;
     mainMenu.setStyle(s);
-    mainMenu.load("", {{"Spiel starten", [&]
-                        { state = GameState::PLAY; }},
-                       {"Level auswählen", [&]
-                        { state = GameState::LEVEL_SELECT; }},
-                       {"Shop", [&]
-                        { state = GameState::SHOP; }},
-                       {"Zurück", [&]
-                        { state = GameState::INTRO_MENU; }}});
-
-    LevelSelectScreen levelSelect;
-    int currentLevel = 0;
-    levelSelect.setOnBack([&]
-                          { state = GameState::MAIN_MENU; });
-    levelSelect.setOnStart([&](int idx)
-                           { currentLevel = idx; state = GameState::PLAY; });
-    levelSelect.load(&levelManager);
+    mainMenu.load("", {{"Spiel starten", [&]{ state = GameState::PLAY; }},
+                       {"Level auswählen", [&]{ state = GameState::LEVEL_SELECT; }},
+                       {"Shop", [&]{ state = GameState::SHOP; }},
+                       {"Zurück", [&]{ state = GameState::INTRO_MENU; }}});
 
     GameScreen gameScreen;
-    gameScreen.setOnFinish([&]
-                           { state = GameState::MAIN_MENU; gameScreen.unload(); });
-    // Wichtig: Lade das Level einmal initial, falls der Spieler direkt "Spiel starten" wählt
-    gameScreen.load(&levelManager, currentLevel);
+    LevelSelectScreen levelSelect;
+    int currentLevel = 0;
+
+    levelSelect.setOnBack([&]{ state = GameState::MAIN_MENU; });
+    
+    levelSelect.setOnStart([&](int idx) {
+        currentLevel = idx;
+        gameScreen.load(&levelManager, currentLevel);
+        state = GameState::PLAY;
+    });
+    levelSelect.load(&levelManager);
+
+    gameScreen.setOnFinish([&] {
+        gameScreen.unload();
+        state = GameState::MAIN_MENU;
+    });
 
     // --- Haupt-Schleife ---
     while (!WindowShouldClose())
     {
         UpdateMusicStream(backgroundMusic);
 
-        // --- Update-Logik (wie bisher) ---
-        // Hier bleibt alles gleich, die Logik ist von der Auflösung unabhängig.
+        // --- Update-Logik (REPARIERTE VERSION) ---
         switch (state)
         {
         case GameState::INTRO_MENU:
@@ -95,6 +90,9 @@ int main()
             break;
         case GameState::MAIN_MENU:
             mainMenu.update();
+            if (state == GameState::PLAY) {
+                gameScreen.load(&levelManager, currentLevel); 
+            }
             break;
         case GameState::LEVEL_SELECT:
             levelSelect.update();
@@ -110,56 +108,35 @@ int main()
             break;
         }
 
-        // --- ZEICHNEN - Teil 1: Alles auf die virtuelle Leinwand zeichnen ---
+        // --- ZEICHNEN - Teil 1: Auf virtuelle Leinwand ---
         BeginTextureMode(target);
-        ClearBackground(DARKGRAY); // Hintergrund der Leinwand säubern
-
-        // Dein gesamter Zeichen-Code kommt hier rein
-        switch (state)
-        {
-        case GameState::INTRO_MENU:
-            introMenu.draw();
-            break;
-        case GameState::MAIN_MENU:
-            mainMenu.draw();
-            break;
-        case GameState::LEVEL_SELECT:
-            levelSelect.draw();
-            break;
-        case GameState::PLAY:
-            gameScreen.draw();
-            break;
-        case GameState::SHOP:
-            DrawText("Shop (stub)", 400, 400, 40, RAYWHITE);
-            break; // Feste Koordinaten!
-        default:
-            break;
-        }
+            ClearBackground(DARKGRAY);
+            switch (state)
+            {
+            case GameState::INTRO_MENU:   introMenu.draw(); break;
+            case GameState::MAIN_MENU:    mainMenu.draw(); break;
+            case GameState::LEVEL_SELECT: levelSelect.draw(); break;
+            case GameState::PLAY:         gameScreen.draw(); break;
+            case GameState::SHOP:         DrawText("Shop (stub)", 400, 400, 40, RAYWHITE); break;
+            default: break;
+            }
         EndTextureMode();
 
-        // --- ZEICHNEN - Teil 2: Die fertige Leinwand auf den Bildschirm zeichnen ---
+        // --- ZEICHNEN - Teil 2: Leinwand auf Bildschirm (DEINE VERSION) ---
         BeginDrawing();
-        ClearBackground(BLACK); // Echte Ränder werden schwarz
-
-        // NEU: Berechne die Skalierung, um das Seitenverhältnis beizubehalten
-        float scale = fmin((float)GetScreenWidth() / VIRTUAL_SCREEN_WIDTH, (float)GetScreenHeight() / VIRTUAL_SCREEN_HEIGHT);
-
-        // NEU: Berechne Position, um die Leinwand zu zentrieren
-        float destX = (GetScreenWidth() - ((float)VIRTUAL_SCREEN_WIDTH * scale)) * 0.5f;
-        float destY = (GetScreenHeight() - ((float)VIRTUAL_SCREEN_HEIGHT * scale)) * 0.5f;
-
-        // NEU: Definiere die Quell- und Ziel-Rechtecke für das Zeichnen
-        Rectangle sourceRec = {0.0f, 0.0f, (float)target.texture.width, (float)-target.texture.height}; // Y-Achse umdrehen!
-        Rectangle destRec = {destX, destY, (float)VIRTUAL_SCREEN_WIDTH * scale, (float)VIRTUAL_SCREEN_HEIGHT * scale};
-
-        // NEU: Zeichne die fertige Leinwand auf den Bildschirm
-        DrawTexturePro(target.texture, sourceRec, destRec, {0, 0}, 0.0f, WHITE);
-
+            ClearBackground(BLACK);
+            float scale = fmin((float)GetScreenWidth() / VIRTUAL_SCREEN_WIDTH, (float)GetScreenHeight() / VIRTUAL_SCREEN_HEIGHT);
+            float destX = (GetScreenWidth() - ((float)VIRTUAL_SCREEN_WIDTH * scale)) * 0.5f;
+            float destY = (GetScreenHeight() - ((float)VIRTUAL_SCREEN_HEIGHT * scale)) * 0.5f;
+            Rectangle sourceRec = {0.0f, 0.0f, (float)target.texture.width, (float)-target.texture.height};
+            Rectangle destRec = {destX, destY, (float)VIRTUAL_SCREEN_WIDTH * scale, (float)VIRTUAL_SCREEN_HEIGHT * scale};
+            DrawTexturePro(target.texture, sourceRec, destRec, {0, 0}, 0.0f, WHITE);
         EndDrawing();
     }
 
     // --- Aufräumen ---
-    UnloadRenderTexture(target); // Wichtig: Die Leinwand am Ende entladen
+    UnloadRenderTexture(target);
+    UnloadMusicStream(backgroundMusic);
     introMenu.unload();
     mainMenu.unload();
     levelSelect.unload();

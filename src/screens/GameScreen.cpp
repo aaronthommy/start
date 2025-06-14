@@ -1,6 +1,7 @@
 // src/screens/GameScreen.cpp
 
 #include "screens/GameScreen.h"
+#include "config.h" // <-- WICHTIG: Einbinden
 
 GameScreen::GameScreen()
 {
@@ -14,13 +15,11 @@ void GameScreen::load(LevelManager *levelManager, int levelIndex)
 
     const LevelInfo &info = levelMgr->get(currentLevel);
 
-    // Lade spezifische Level-Assets
-    // Fürs Erste nehmen wir den generischen Hintergrund
-    background = LoadTexture("assets/ui/background.png");
+    // KORREKTUR: Lade den Hintergrund aus den Level-Daten
+    background = LoadTexture(info.backgroundPath.c_str());
 
+    player.reset(); // Spieler auf Startposition zurücksetzen
     player.load();
-
-    // Hier würdest du später das Level aus info.filePath laden
 }
 
 void GameScreen::unload()
@@ -37,23 +36,22 @@ void GameScreen::update()
         {
             onFinish();
         }
-        return; // Verhindert Spieler-Update nach Verlassen des Screens
+        return;
     }
 
-    player.update(GetFrameTime()); // <-- HIER: Spieler-Logik aufrufen
+    player.update(GetFrameTime());
 }
 
 void GameScreen::draw() const
 {
-    // Hintergrund zeichnen
+    // KORREKTUR: Zeichne den Hintergrund auf die virtuelle Leinwand
     DrawTexturePro(background,
                    {0, 0, (float)background.width, (float)background.height},
-                   {0, 0, (float)GetScreenWidth(), (float)GetScreenHeight()},
+                   {0, 0, (float)VIRTUAL_SCREEN_WIDTH, (float)VIRTUAL_SCREEN_HEIGHT},
                    {0, 0}, 0, WHITE);
 
     player.draw();
 
-    // Aktuellen Levelnamen anzeigen
     if (levelMgr && currentLevel != -1)
     {
         const LevelInfo &info = levelMgr->get(currentLevel);

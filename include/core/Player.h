@@ -10,6 +10,7 @@ public:
     void unload();
     void update(float delta);
     void draw() const;
+    void reset();
     Rectangle getBounds() const;
 
 private:

@@ -1,12 +1,15 @@
-// src/core/Player.cpp
-
 #include "core/Player.h"
-#include "SpriteUtils.h" // Für loadSprite
+#include "SpriteUtils.h"
+#include "config.h"       // <-- WICHTIG: Einbinden, um die virtuellen Dimensionen zu kennen
 
 Player::Player() {
-    position = { 100, 100 };
-    velocity = { 0, 0 };
-    canJump = false;
+    reset();
+}
+
+void Player::reset() {
+    position = { 100, 100 }; // Startposition
+    velocity = { 0, 0 };    // Keine Anfangsgeschwindigkeit
+    canJump = false;        // Kann am Anfang nicht springen (erst bei Bodenkontakt)
 }
 
 void Player::load() {
@@ -35,15 +38,13 @@ void Player::update(float delta) {
     }
 
     // 3. Physik anwenden
-    // Gravitation
     velocity.y += GRAVITY * delta;
-    // Position aktualisieren
     position.x += velocity.x * delta;
     position.y += velocity.y * delta;
 
-    // 4. Provisorischer Boden (damit der Spieler nicht durchfällt)
-    // Wir nehmen eine feste Y-Position als Boden
-    float groundLevel = GetScreenHeight() - 150.0f; 
+    // 4. Provisorischer Boden
+    // KORREKTUR: Benutze VIRTUAL_SCREEN_HEIGHT statt GetScreenHeight()
+    float groundLevel = VIRTUAL_SCREEN_HEIGHT - 150.0f; 
     if (position.y >= groundLevel) {
         position.y = groundLevel;
         velocity.y = 0;
@@ -52,12 +53,11 @@ void Player::update(float delta) {
 }
 
 void Player::draw() const {
-    // Zeichne den Spieler. Flip-Logik für Blickrichtung kommt später.
-    Rectangle src = {0, 0, 100, 100}; // Erster Frame des Sprites
+    Rectangle src = {0, 0, 100, 100};
     Rectangle dest = getBounds();
     DrawTexturePro(sprite, src, dest, {0, 0}, 0, WHITE);
 }
 
 Rectangle Player::getBounds() const {
-    return { position.x, position.y, 100, 100 }; // Größe an Sprite anpassen
+    return { position.x, position.y, 100, 100 };
 }

@@ -6,6 +6,7 @@ struct LevelInfo {
     int id = 0;
     std::string name;
     std::string file;
+    std::string backgroundPath; // <-- Hinzugefügt
 };
 
 class LevelManager {
