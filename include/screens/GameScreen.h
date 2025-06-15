@@ -22,6 +22,7 @@ private:
     LevelManager* levelMgr = nullptr;
     int currentLevel = -1;
     Texture2D background;
+    Camera2D camera;
     std::function<void()> onFinish;
     Player player; 
 };

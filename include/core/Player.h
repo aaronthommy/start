@@ -12,6 +12,7 @@ public:
     void draw() const;
     void reset();
     Rectangle getBounds() const;
+    Vector2 getPosition() const;
 
 private:
     Texture2D sprite;

@@ -12,6 +12,10 @@ void Player::reset() {
     canJump = false;        // Kann am Anfang nicht springen (erst bei Bodenkontakt)
 }
 
+Vector2 Player::getPosition() const {
+    return position;
+}
+
 void Player::load() {
     // Wir nehmen den Sprite, der schon in main geladen wurde
     sprite = loadSprite("assets/sprites/player/player.png", 20);

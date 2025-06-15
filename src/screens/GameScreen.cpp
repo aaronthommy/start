@@ -5,7 +5,11 @@
 
 GameScreen::GameScreen()
 {
-    // Konstruktor
+    camera = { 0 };
+    // Der Offset sorgt dafür, dass die Kamera den Spieler in der Mitte des Bildschirms hält
+    camera.offset = { (float)VIRTUAL_SCREEN_WIDTH / 2.0f, (float)VIRTUAL_SCREEN_HEIGHT / 2.0f };
+    camera.rotation = 0.0f;
+    camera.zoom = 1.0f;
 }
 
 void GameScreen::load(LevelManager *levelManager, int levelIndex)
@@ -40,10 +44,14 @@ void GameScreen::update()
     }
 
     player.update(GetFrameTime());
+
+    camera.target = player.getPosition();
 }
 
 void GameScreen::draw() const
 {
+
+    BeginMode2D(camera);
     // KORREKTUR: Zeichne den Hintergrund auf die virtuelle Leinwand
     DrawTexturePro(background,
                    {0, 0, (float)background.width, (float)background.height},
@@ -51,6 +59,8 @@ void GameScreen::draw() const
                    {0, 0}, 0, WHITE);
 
     player.draw();
+
+    EndMode2D();
 
     if (levelMgr && currentLevel != -1)
     {
