@@ -5,9 +5,9 @@
 
 GameScreen::GameScreen()
 {
-    camera = { 0 };
+    camera = {0};
     // Der Offset sorgt dafür, dass die Kamera den Spieler in der Mitte des Bildschirms hält
-    camera.offset = { (float)VIRTUAL_SCREEN_WIDTH / 2.0f, (float)VIRTUAL_SCREEN_HEIGHT / 2.0f };
+    camera.offset = {(float)VIRTUAL_SCREEN_WIDTH / 2.0f, (float)VIRTUAL_SCREEN_HEIGHT / 2.0f};
     camera.rotation = 0.0f;
     camera.zoom = 1.0f;
 }
@@ -19,16 +19,23 @@ void GameScreen::load(LevelManager *levelManager, int levelIndex)
 
     const LevelInfo &info = levelMgr->get(currentLevel);
 
-    // KORREKTUR: Lade den Hintergrund aus den Level-Daten
-    background = LoadTexture(info.backgroundPath.c_str());
+    backgroundSky = LoadTexture("assets/ui/background_sky.png");
+    backgroundHills = LoadTexture("assets/ui/background_hills.png");
 
     player.reset(); // Spieler auf Startposition zurücksetzen
     player.load();
+
+    platforms.clear();                        // Alte Plattformen löschen
+    platforms.push_back({0, 800, 2000, 200}); // Langer Boden
+    platforms.push_back({400, 650, 250, 50}); // Eine schwebende Plattform
+    platforms.push_back({800, 550, 250, 50}); // Noch eine...
+    platforms.push_back({1200, 450, 150, 50});
 }
 
 void GameScreen::unload()
 {
-    UnloadTexture(background);
+    UnloadTexture(backgroundSky);
+    UnloadTexture(backgroundHills);
     player.unload();
 }
 
@@ -43,7 +50,7 @@ void GameScreen::update()
         return;
     }
 
-    player.update(GetFrameTime());
+    player.update(GetFrameTime(), platforms);
 
     camera.target = player.getPosition();
 }
@@ -52,11 +59,24 @@ void GameScreen::draw() const
 {
 
     BeginMode2D(camera);
-    // KORREKTUR: Zeichne den Hintergrund auf die virtuelle Leinwand
-    DrawTexturePro(background,
-                   {0, 0, (float)background.width, (float)background.height},
-                   {0, 0, (float)VIRTUAL_SCREEN_WIDTH, (float)VIRTUAL_SCREEN_HEIGHT},
-                   {0, 0}, 0, WHITE);
+
+    for (const auto &platform : platforms)
+    {
+        DrawRectangleRec(platform, GRAY);
+    }
+
+    Rectangle skySource = {camera.target.x * 0.1f, 0, (float)VIRTUAL_SCREEN_WIDTH, (float)backgroundSky.height};
+    Rectangle skyDest = {camera.target.x - VIRTUAL_SCREEN_WIDTH / 2.0f, 0, (float)VIRTUAL_SCREEN_WIDTH, (float)VIRTUAL_SCREEN_HEIGHT};
+    DrawTexturePro(backgroundSky, skySource, skyDest, {0, 0}, 0, WHITE);
+
+    Rectangle hillsSource = {camera.target.x * 0.5f, 0, (float)VIRTUAL_SCREEN_WIDTH, (float)backgroundHills.height};
+    Rectangle hillsDest = {camera.target.x - VIRTUAL_SCREEN_WIDTH / 2.0f, 0, (float)VIRTUAL_SCREEN_WIDTH, (float)VIRTUAL_SCREEN_HEIGHT};
+    DrawTexturePro(backgroundHills, hillsSource, hillsDest, {0, 0}, 0, WHITE);
+
+    for (const auto &platform : platforms)
+    {
+        DrawRectangleRec(platform, DARKGRAY); // Geändert zu DARKGRAY für besseren Kontrast
+    }
 
     player.draw();
 

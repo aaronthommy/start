@@ -2,13 +2,14 @@
 
 #pragma once
 #include "raylib.h"
+#include <vector>
 
 class Player {
 public:
     Player();
     void load();
     void unload();
-    void update(float delta);
+    void update(float delta, const std::vector<Rectangle>& platforms); 
     void draw() const;
     void reset();
     Rectangle getBounds() const;

@@ -21,8 +21,10 @@ public:
 private:
     LevelManager* levelMgr = nullptr;
     int currentLevel = -1;
-    Texture2D background;
+    Texture2D backgroundSky;   
+    Texture2D backgroundHills;
     Camera2D camera;
+    std::vector<Rectangle> platforms;
     std::function<void()> onFinish;
     Player player; 
 };
