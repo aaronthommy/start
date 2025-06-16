@@ -19,8 +19,8 @@ void GameScreen::load(LevelManager *levelManager, int levelIndex)
 
     const LevelInfo &info = levelMgr->get(currentLevel);
 
-    backgroundSky = LoadTexture("assets/ui/background_sky.png");
-    backgroundHills = LoadTexture("assets/ui/background_hills.png");
+    backgroundSky = LoadTexture("assets/graphics/backgrounds/sky.png");
+    backgroundHills = LoadTexture("assets/graphics/backgrounds/low_mountains.png");
 
     player.reset(); // Spieler auf Startposition zurücksetzen
     player.load();

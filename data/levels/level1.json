@@ -1,6 +1,11 @@
 {
     "level_name": "Grassy Plains",
-    "background": "assets/ui/background.png",
+    
+    "background_layers": [
+        { "path": "assets/graphics/backgrounds/sky.png",   "scroll_speed": 0.1 },
+        { "path": "assets/graphics/backgrounds/high_mountains.png", "scroll_speed": 0.3 },
+        { "path": "assets/graphics/backgrounds/high_trees.png", "scroll_speed": 0.7 }
+    ],
 
     "player_start": {
         "x": 150,
@@ -9,13 +14,6 @@
 
     "platforms": [
         { "x": 0, "y": 980, "width": 1920, "height": 100 },
-        { "x": 400, "y": 850, "width": 250, "height": 40 },
-        { "x": 780, "y": 720, "width": 250, "height": 40 },
-        { "x": 1200, "y": 620, "width": 300, "height": 40 }
-    ],
-
-    "enemies": [
-        { "type": "duck", "x": 500, "y": 800 },
-        { "type": "duck", "x": 1300, "y": 570 }
+        { "x": 400, "y": 850, "width": 250, "height": 40 }
     ]
 }
