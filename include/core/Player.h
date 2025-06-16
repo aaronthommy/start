@@ -13,6 +13,7 @@ public:
     void draw() const;
     void reset();
     Rectangle getBounds() const;
+    void setPosition(Vector2 newPosition);
     Vector2 getPosition() const;
 
 private:

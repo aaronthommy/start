@@ -4,27 +4,36 @@
 
 #include "raylib.h"
 #include "core/LevelManager.h"
+#include "core/Player.h"
 #include <functional>
-#include "core/Player.h" 
+#include <vector>
+
+// Eine kleine Struktur, die eine Ebene unseres Parallax-Hintergrunds beschreibt
+struct ParallaxLayer {
+    Texture2D texture;
+    float scrollSpeed;
+};
 
 class GameScreen {
 public:
     GameScreen();
+    ~GameScreen(); // Wichtig, um Texturen sauber zu entladen
+
     void load(LevelManager* levelManager, int levelIndex);
     void unload();
     void update();
     void draw() const;
 
-    // Callback, um zum Menü zurückzukehren
     void setOnFinish(std::function<void()> cb) { onFinish = std::move(cb); }
 
 private:
     LevelManager* levelMgr = nullptr;
     int currentLevel = -1;
-    Texture2D backgroundSky;   
-    Texture2D backgroundHills;
+    Player player;
     Camera2D camera;
+    
+    std::vector<ParallaxLayer> backgroundLayers;
     std::vector<Rectangle> platforms;
+    
     std::function<void()> onFinish;
-    Player player; 
 };

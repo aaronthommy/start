@@ -1,93 +1,123 @@
 // src/screens/GameScreen.cpp
 
 #include "screens/GameScreen.h"
-#include "config.h" // <-- WICHTIG: Einbinden
+#include "config.h"
+#include "nlohmann/json.hpp" // JSON-Bibliothek
+#include <fstream>          // Zum Lesen von Dateien
+#include <cmath>            // Für fmodf (seamless scrolling)
+
+using json = nlohmann::json;
 
 GameScreen::GameScreen()
 {
-    camera = {0};
-    // Der Offset sorgt dafür, dass die Kamera den Spieler in der Mitte des Bildschirms hält
+    // Kamera initialisieren, sodass sie auf den Spieler zentriert ist
+    camera = { 0 };
     camera.offset = {(float)VIRTUAL_SCREEN_WIDTH / 2.0f, (float)VIRTUAL_SCREEN_HEIGHT / 2.0f};
     camera.rotation = 0.0f;
     camera.zoom = 1.0f;
 }
 
-void GameScreen::load(LevelManager *levelManager, int levelIndex)
+GameScreen::~GameScreen()
+{
+    // Stellt sicher, dass auch bei Zerstörung des Objekts alles entladen wird
+    unload();
+}
+
+void GameScreen::load(LevelManager* levelManager, int levelIndex)
 {
     levelMgr = levelManager;
     currentLevel = levelIndex;
 
-    const LevelInfo &info = levelMgr->get(currentLevel);
+    // Angenommen, dein LevelManager gibt dir eine LevelInfo mit dem jsonPath
+    const LevelInfo& info = levelMgr->get(levelIndex);
+    std::ifstream f(info.jsonPath); 
+    if (!f.is_open()) {
+        TraceLog(LOG_ERROR, "Konnte Level-JSON nicht öffnen: %s", info.jsonPath.c_str());
+        return;
+    }
+    json data = json::parse(f);
 
-    backgroundSky = LoadTexture("assets/graphics/backgrounds/sky.png");
-    backgroundHills = LoadTexture("assets/graphics/backgrounds/low_mountains.png");
+    // --- Level aus den JSON-Daten aufbauen ---
 
-    player.reset(); // Spieler auf Startposition zurücksetzen
+    // 1. Lade alle Hintergrund-Ebenen aus dem JSON-Array
+    backgroundLayers.clear();
+    for (const auto& layerData : data["background_layers"]) {
+        std::string path = layerData["path"];
+        ParallaxLayer layer = {
+            LoadTexture(path.c_str()),
+            layerData["scroll_speed"]
+        };
+        backgroundLayers.push_back(layer);
+    }
+
+    // 2. Lade den Spieler und setze ihn an die Startposition
     player.load();
+    Vector2 startPos = { data["player_start"]["x"], data["player_start"]["y"] };
+    player.setPosition(startPos);
+    camera.target = startPos; // Kamera initial auf Spieler ausrichten
 
-    platforms.clear();                        // Alte Plattformen löschen
-    platforms.push_back({0, 800, 2000, 200}); // Langer Boden
-    platforms.push_back({400, 650, 250, 50}); // Eine schwebende Plattform
-    platforms.push_back({800, 550, 250, 50}); // Noch eine...
-    platforms.push_back({1200, 450, 150, 50});
+    // 3. Lade alle Plattformen aus dem JSON-Array
+    platforms.clear();
+    for (const auto& platformData : data["platforms"]) {
+        platforms.push_back({
+            platformData["x"],
+            platformData["y"],
+            platformData["width"],
+            platformData["height"]
+        });
+    }
 }
 
 void GameScreen::unload()
 {
-    UnloadTexture(backgroundSky);
-    UnloadTexture(backgroundHills);
     player.unload();
+    for (auto& layer : backgroundLayers) {
+        UnloadTexture(layer.texture);
+    }
+    backgroundLayers.clear();
 }
 
 void GameScreen::update()
 {
-    if (IsKeyPressed(KEY_ESCAPE))
-    {
-        if (onFinish)
-        {
-            onFinish();
-        }
+    if (IsKeyPressed(KEY_ESCAPE)) {
+        if (onFinish) onFinish();
         return;
     }
 
+    // Übergib die Level-Plattformen an den Spieler für die Kollisionsabfrage
     player.update(GetFrameTime(), platforms);
 
+    // Die Kamera folgt immer der aktuellen Spielerposition
     camera.target = player.getPosition();
 }
 
 void GameScreen::draw() const
 {
+    // Parallax-Hintergründe als Erstes zeichnen
+    for (const auto& layer : backgroundLayers)
+    {
+        // Diese Logik erzeugt einen nahtlosen, unendlich scrollenden Hintergrund
+        float scrollOffset = fmodf(camera.target.x * layer.scrollSpeed, (float)layer.texture.width);
+        DrawTexture(layer.texture, -scrollOffset, 0, WHITE);
+        DrawTexture(layer.texture, (float)layer.texture.width - scrollOffset, 0, WHITE);
+    }
 
+    // Starte den 2D-Kameramodus. Alles was jetzt gezeichnet wird, bewegt sich mit der Welt.
     BeginMode2D(camera);
 
-    for (const auto &platform : platforms)
-    {
-        DrawRectangleRec(platform, GRAY);
-    }
+        for (const auto& platform : platforms) {
+            DrawRectangleRec(platform, DARKGRAY);
+        }
 
-    Rectangle skySource = {camera.target.x * 0.1f, 0, (float)VIRTUAL_SCREEN_WIDTH, (float)backgroundSky.height};
-    Rectangle skyDest = {camera.target.x - VIRTUAL_SCREEN_WIDTH / 2.0f, 0, (float)VIRTUAL_SCREEN_WIDTH, (float)VIRTUAL_SCREEN_HEIGHT};
-    DrawTexturePro(backgroundSky, skySource, skyDest, {0, 0}, 0, WHITE);
-
-    Rectangle hillsSource = {camera.target.x * 0.5f, 0, (float)VIRTUAL_SCREEN_WIDTH, (float)backgroundHills.height};
-    Rectangle hillsDest = {camera.target.x - VIRTUAL_SCREEN_WIDTH / 2.0f, 0, (float)VIRTUAL_SCREEN_WIDTH, (float)VIRTUAL_SCREEN_HEIGHT};
-    DrawTexturePro(backgroundHills, hillsSource, hillsDest, {0, 0}, 0, WHITE);
-
-    for (const auto &platform : platforms)
-    {
-        DrawRectangleRec(platform, DARKGRAY); // Geändert zu DARKGRAY für besseren Kontrast
-    }
-
-    player.draw();
+        player.draw();
 
     EndMode2D();
+    // Ende des Kameramodus
 
-    if (levelMgr && currentLevel != -1)
-    {
+    // Zeichne statische UI-Elemente (z.B. Score, Leben), die sich nicht bewegen sollen
+    if (levelMgr && currentLevel != -1) {
         const LevelInfo &info = levelMgr->get(currentLevel);
-        DrawText(TextFormat("Du spielst: %s", info.name.c_str()),
-                 100, 100, 40, GOLD);
+        DrawText(TextFormat("Du spielst: %s", info.name.c_str()), 20, 20, 30, GOLD);
     }
-
-    DrawText("Drücke ESC, um zum Menü zurückzukehren.", 100, 150, 20, RAYWHITE);
+    DrawText("Drücke ESC zum Verlassen", 20, 60, 20, RAYWHITE);
 }

@@ -25,6 +25,11 @@ Vector2 Player::getPosition() const
     return position;
 }
 
+void Player::setPosition(Vector2 newPosition)
+{
+    position = newPosition;
+}
+
 void Player::load()
 {
     // Wir nehmen den Sprite, der schon in main geladen wurde
