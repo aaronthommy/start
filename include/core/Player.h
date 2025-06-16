@@ -21,6 +21,12 @@ private:
     Vector2 velocity;
     bool canJump;
 
+    int frameCount;      // Wie viele Frames hat die Animation? (z.B. 20)
+    int currentFrame;    // Welcher Frame wird gerade angezeigt?
+    float frameTimer;    // Ein Zähler für die Zeit
+    float frameSpeed;    // Wie schnell soll die Animation laufen? (z.B. 12 FPS)
+    bool facingRight;
+
     // Physik-Konstanten
     static constexpr float GRAVITY = 1200.0f;
     static constexpr float MOVE_SPEED = 300.0f;
