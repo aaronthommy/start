@@ -8,6 +8,9 @@
 #include "screens/GameScreen.h"
 #include "config.h"
 #include "SpriteUtils.h"
+#include "screens/ShopScreen.h"
+#include "core/SaveManager.h"
+#include "core/Stats.h"
 #include <cmath>
 
 int main()
@@ -16,12 +19,12 @@ int main()
     SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIGHDPI);
     InitWindow(VIRTUAL_SCREEN_WIDTH, VIRTUAL_SCREEN_HEIGHT, "Jump-Run");
     ToggleFullscreen(); // Auf echten Vollbildmodus umschalten
-    
-    // HINWEIS: InitWindow wird von raylib nur einmal effektiv ausgeführt. 
-    // Der zweite Aufruf in deinem Originalcode war wahrscheinlich überflüssig, 
-    // da ToggleFullscreen() das Fenster bereits an den Monitor anpasst. 
+
+    // HINWEIS: InitWindow wird von raylib nur einmal effektiv ausgeführt.
+    // Der zweite Aufruf in deinem Originalcode war wahrscheinlich überflüssig,
+    // da ToggleFullscreen() das Fenster bereits an den Monitor anpasst.
     // Wir lassen es bei dieser sauberen Sequenz.
-    
+
     InitAudioDevice();
     SetExitKey(0);
     SetTargetFPS(120);
@@ -36,12 +39,23 @@ int main()
 
     GameState state = GameState::INTRO_MENU;
 
+    SaveManager saveManager;
+    saveManager.load(); // Lädt gespeicherte Daten
+
+    Stats playerStats;
+    playerStats.coins = saveManager.data().coins;
+    playerStats.maxHP = saveManager.data().maxLives;
+
+    ShopScreen shopScreen;
+
     // --- Manager und Screens einrichten (REPARIERTE VERSION) ---
     LevelManager levelManager;
     levelManager.init();
 
     MenuScreen introMenu;
-    introMenu.load("assets/ui/title.png", {{"Start", [&]{ state = GameState::MAIN_MENU; }}, {"Optionen", [&] {}}});
+    introMenu.load("assets/ui/title.png", {{"Start", [&]
+                                            { state = GameState::MAIN_MENU; }},
+                                           {"Optionen", [&] {}}});
 
     MenuScreen::Style s;
     s.vGap = 70;
@@ -54,28 +68,41 @@ int main()
 
     MenuScreen mainMenu;
     mainMenu.setStyle(s);
-    mainMenu.load("", {{"Spiel starten", [&]{ state = GameState::PLAY; }},
-                       {"Level auswählen", [&]{ state = GameState::LEVEL_SELECT; }},
-                       {"Shop", [&]{ state = GameState::SHOP; }},
-                       {"Zurück", [&]{ state = GameState::INTRO_MENU; }}});
+    mainMenu.load("", {{"Spiel starten", [&]
+                        { state = GameState::PLAY; }},
+                       {"Level auswählen", [&]
+                        { state = GameState::LEVEL_SELECT; }},
+                       {"Shop", [&]
+                        {
+                            shopScreen.load(&saveManager, &playerStats);
+                            state = GameState::SHOP;
+                        }},
+                       {"Zurück", [&]
+                        { state = GameState::INTRO_MENU; }}});
 
     GameScreen gameScreen;
     LevelSelectScreen levelSelect;
     int currentLevel = 0;
 
-    levelSelect.setOnBack([&]{ state = GameState::MAIN_MENU; });
-    
-    levelSelect.setOnStart([&](int idx) {
+    shopScreen.setOnBack([&]
+                         { 
+        shopScreen.unload();
+        state = GameState::MAIN_MENU; });
+
+    levelSelect.setOnBack([&]
+                          { state = GameState::MAIN_MENU; });
+
+    levelSelect.setOnStart([&](int idx)
+                           {
         currentLevel = idx;
-        gameScreen.load(&levelManager, currentLevel);
-        state = GameState::PLAY;
-    });
+        gameScreen.load(&levelManager, currentLevel, &saveManager, &playerStats);
+        state = GameState::PLAY; });
     levelSelect.load(&levelManager);
 
-    gameScreen.setOnFinish([&] {
+    gameScreen.setOnFinish([&]
+                           {
         gameScreen.unload();
-        state = GameState::MAIN_MENU;
-    });
+        state = GameState::MAIN_MENU; });
 
     // --- Haupt-Schleife ---
     while (!WindowShouldClose())
@@ -90,8 +117,9 @@ int main()
             break;
         case GameState::MAIN_MENU:
             mainMenu.update();
-            if (state == GameState::PLAY) {
-                gameScreen.load(&levelManager, currentLevel); 
+            if (state == GameState::PLAY)
+            {
+                gameScreen.load(&levelManager, currentLevel);
             }
             break;
         case GameState::LEVEL_SELECT:
@@ -101,8 +129,7 @@ int main()
             gameScreen.update();
             break;
         case GameState::SHOP:
-            if (IsKeyPressed(KEY_BACKSPACE))
-                state = GameState::MAIN_MENU;
+            shopScreen.update();
             break;
         default:
             break;
@@ -110,31 +137,43 @@ int main()
 
         // --- ZEICHNEN - Teil 1: Auf virtuelle Leinwand ---
         BeginTextureMode(target);
-            ClearBackground(DARKGRAY);
-            switch (state)
-            {
-            case GameState::INTRO_MENU:   introMenu.draw(); break;
-            case GameState::MAIN_MENU:    mainMenu.draw(); break;
-            case GameState::LEVEL_SELECT: levelSelect.draw(); break;
-            case GameState::PLAY:         gameScreen.draw(); break;
-            case GameState::SHOP:         DrawText("Shop (stub)", 400, 400, 40, RAYWHITE); break;
-            default: break;
-            }
+        ClearBackground(DARKGRAY);
+        switch (state)
+        {
+        case GameState::INTRO_MENU:
+            introMenu.draw();
+            break;
+        case GameState::MAIN_MENU:
+            mainMenu.draw();
+            break;
+        case GameState::LEVEL_SELECT:
+            levelSelect.draw();
+            break;
+        case GameState::PLAY:
+            gameScreen.draw();
+            break;
+        case GameState::SHOP:
+            shopScreen.draw();
+            break;
+        default:
+            break;
+        }
         EndTextureMode();
 
         // --- ZEICHNEN - Teil 2: Leinwand auf Bildschirm (DEINE VERSION) ---
         BeginDrawing();
-            ClearBackground(BLACK);
-            float scale = fmin((float)GetScreenWidth() / VIRTUAL_SCREEN_WIDTH, (float)GetScreenHeight() / VIRTUAL_SCREEN_HEIGHT);
-            float destX = (GetScreenWidth() - ((float)VIRTUAL_SCREEN_WIDTH * scale)) * 0.5f;
-            float destY = (GetScreenHeight() - ((float)VIRTUAL_SCREEN_HEIGHT * scale)) * 0.5f;
-            Rectangle sourceRec = {0.0f, 0.0f, (float)target.texture.width, (float)-target.texture.height};
-            Rectangle destRec = {destX, destY, (float)VIRTUAL_SCREEN_WIDTH * scale, (float)VIRTUAL_SCREEN_HEIGHT * scale};
-            DrawTexturePro(target.texture, sourceRec, destRec, {0, 0}, 0.0f, WHITE);
+        ClearBackground(BLACK);
+        float scale = fmin((float)GetScreenWidth() / VIRTUAL_SCREEN_WIDTH, (float)GetScreenHeight() / VIRTUAL_SCREEN_HEIGHT);
+        float destX = (GetScreenWidth() - ((float)VIRTUAL_SCREEN_WIDTH * scale)) * 0.5f;
+        float destY = (GetScreenHeight() - ((float)VIRTUAL_SCREEN_HEIGHT * scale)) * 0.5f;
+        Rectangle sourceRec = {0.0f, 0.0f, (float)target.texture.width, (float)-target.texture.height};
+        Rectangle destRec = {destX, destY, (float)VIRTUAL_SCREEN_WIDTH * scale, (float)VIRTUAL_SCREEN_HEIGHT * scale};
+        DrawTexturePro(target.texture, sourceRec, destRec, {0, 0}, 0.0f, WHITE);
         EndDrawing();
     }
 
     // --- Aufräumen ---
+    shopScreen.unload();
     UnloadRenderTexture(target);
     UnloadMusicStream(backgroundMusic);
     introMenu.unload();

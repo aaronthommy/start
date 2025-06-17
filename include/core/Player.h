@@ -18,6 +18,14 @@ public:
     void setPosition(Vector2 newPosition);
     void usePrimaryAbility(CombatSystem& combatSystem, Vector2 target);
     Vector2 getPosition() const;
+    Rectangle getHitbox() const {
+        return {pos.x - 20, pos.y - 30, 40, 60};  // Beispielwerte
+    }
+    
+    void takeDamage() {
+        // Implementiere Schaden-Logik
+        // z.B. Unverwundbarkeits-Timer, Rückstoß, etc.
+    }
 
 private:
     Texture2D sprite;
