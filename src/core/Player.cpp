@@ -1,5 +1,7 @@
 #include "core/Player.h"
 #include "SpriteUtils.h"
+#include "core/abilities/ProjectileAbility.h" // <- Die konkrete Fähigkeit einbinden
+#include "core/CombatSystem.h" 
 #include "config.h" // <-- WICHTIG: Einbinden, um die virtuellen Dimensionen zu kennen
 
 Player::Player() : Character(Texture2D{}, Vector2{}) // Rufe den Character-Konstruktor mit leeren Werten auf
@@ -13,11 +15,15 @@ void Player::reset()
     vel = {0, 0};     // Keine Anfangsgeschwindigkeit
     canJump = false;       // Kann am Anfang nicht springen (erst bei Bodenkontakt)
 
+    size = {100, 100};   
+
     frameCount = 4; // Dein Player-Sprite hat 20 Frames
     currentFrame = 0;
     frameTimer = 0.0f;
     frameSpeed = 1.0f / 12.0f; // 12 Bilder pro Sekunde
     facingRight = true;
+
+    primaryAbility = std::make_unique<ProjectileAbility>();
 }
 
 Vector2 Player::getPosition() const
@@ -28,6 +34,14 @@ Vector2 Player::getPosition() const
 void Player::setPosition(Vector2 newPosition)
 {
     pos = newPosition;
+}
+
+void Player::usePrimaryAbility(CombatSystem& combatSystem, Vector2 target)
+{
+    if (primaryAbility) {
+        // Rufe die execute-Methode der aktuell zugewiesenen Fähigkeit auf
+        primaryAbility->execute(combatSystem, *this, target);
+    }
 }
 
 void Player::load()
@@ -150,5 +164,7 @@ void Player::draw() const
 
     Rectangle destRec = getBounds();
     DrawTexturePro(sprite, sourceRec, destRec, {0, 0}, 0, WHITE);
+
+    DrawCircleV(getCenter(), 5, RED);
 }
 

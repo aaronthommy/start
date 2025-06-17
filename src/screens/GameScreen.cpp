@@ -2,15 +2,19 @@
 
 #include "screens/GameScreen.h"
 #include "config.h"
-#include "nlohmann/json.hpp" // JSON-Bibliothek
-#include <fstream>          // Zum Lesen von Dateien
-#include <cmath>            // Für fmodf (seamless scrolling)
+#include "core/Projectile.h"
+#include "nlohmann/json.hpp"
+#include <fstream>
+#include <cmath>
 
 using json = nlohmann::json;
 
+// Die Methoden GameScreen(), ~GameScreen(), load(), unload() und update() 
+// bleiben exakt so, wie sie in der letzten Antwort waren.
+// Ich füge sie hier der Vollständigkeit halber nochmal ein.
+
 GameScreen::GameScreen()
 {
-    // Kamera initialisieren, sodass sie auf den Spieler zentriert ist
     camera = { 0 };
     camera.offset = {(float)VIRTUAL_SCREEN_WIDTH / 2.0f, (float)VIRTUAL_SCREEN_HEIGHT / 2.0f};
     camera.rotation = 0.0f;
@@ -19,7 +23,6 @@ GameScreen::GameScreen()
 
 GameScreen::~GameScreen()
 {
-    // Stellt sicher, dass auch bei Zerstörung des Objekts alles entladen wird
     unload();
 }
 
@@ -28,49 +31,40 @@ void GameScreen::load(LevelManager* levelManager, int levelIndex)
     levelMgr = levelManager;
     currentLevel = levelIndex;
 
-    // Angenommen, dein LevelManager gibt dir eine LevelInfo mit dem jsonPath
     const LevelInfo& info = levelMgr->get(levelIndex);
-    std::ifstream f(info.jsonPath); 
+    std::ifstream f(info.jsonPath);
     if (!f.is_open()) {
         TraceLog(LOG_ERROR, "Konnte Level-JSON nicht öffnen: %s", info.jsonPath.c_str());
         return;
     }
     json data = json::parse(f);
 
-    // --- Level aus den JSON-Daten aufbauen ---
-
-    // 1. Lade alle Hintergrund-Ebenen aus dem JSON-Array
     backgroundLayers.clear();
     for (const auto& layerData : data["background_layers"]) {
-        std::string path = layerData["path"];
-        ParallaxLayer layer = {
-            LoadTexture(path.c_str()),
+        backgroundLayers.push_back({
+            LoadTexture(std::string(layerData["path"]).c_str()),
             layerData["scroll_speed"]
-        };
-        backgroundLayers.push_back(layer);
+        });
     }
 
-    // 2. Lade den Spieler und setze ihn an die Startposition
     player.load();
-    Vector2 startPos = { data["player_start"]["x"], data["player_start"]["y"] };
-    player.setPosition(startPos);
-    camera.target = startPos; // Kamera initial auf Spieler ausrichten
+    Projectile::loadTexture();
+    
+    player.setPosition({ data["player_start"]["x"], data["player_start"]["y"] });
+    camera.target = player.getPosition();
+    
+    combatSystem.registerPlayer(&player);
 
-    // 3. Lade alle Plattformen aus dem JSON-Array
     platforms.clear();
-    for (const auto& platformData : data["platforms"]) {
-        platforms.push_back({
-            platformData["x"],
-            platformData["y"],
-            platformData["width"],
-            platformData["height"]
-        });
+    for (const auto& pData : data["platforms"]) {
+        platforms.push_back({ pData["x"], pData["y"], pData["width"], pData["height"] });
     }
 }
 
 void GameScreen::unload()
 {
     player.unload();
+    Projectile::unloadTexture();
     for (auto& layer : backgroundLayers) {
         UnloadTexture(layer.texture);
     }
@@ -83,26 +77,44 @@ void GameScreen::update()
         if (onFinish) onFinish();
         return;
     }
-
-    // Übergib die Level-Plattformen an den Spieler für die Kollisionsabfrage
     player.update(GetFrameTime(), platforms);
-
-    // Die Kamera folgt immer der aktuellen Spielerposition
     camera.target = player.getPosition();
+
+    if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+        Vector2 mouseTarget = GetScreenToWorld2D(GetMousePosition(), camera);
+        player.usePrimaryAbility(combatSystem, mouseTarget);
+    }
+    combatSystem.update(GetFrameTime());
 }
 
+
+// HIER IST DIE NEUE, KORRIGIERTE ZEICHENMETHODE
 void GameScreen::draw() const
 {
-    // Parallax-Hintergründe als Erstes zeichnen
-    for (const auto& layer : backgroundLayers)
-    {
-        // Diese Logik erzeugt einen nahtlosen, unendlich scrollenden Hintergrund
-        float scrollOffset = fmodf(camera.target.x * layer.scrollSpeed, (float)layer.texture.width);
-        DrawTexture(layer.texture, -scrollOffset, 0, WHITE);
-        DrawTexture(layer.texture, (float)layer.texture.width - scrollOffset, 0, WHITE);
+    ClearBackground(BLACK); // Füllt den echten Bildschirm mit Schwarz
+
+    // --- PARALLAX-EBENEN ZEICHNEN ---
+    for (const auto& layer : backgroundLayers) {
+        // Berechne die Skalierung, um die Höhe des Bildschirms zu füllen
+        float scale = (float)VIRTUAL_SCREEN_HEIGHT / (float)layer.texture.height;
+        float scaledWidth = (float)layer.texture.width * scale;
+
+        // Berechne den Offset für nahtloses Scrollen
+        float scrollOffset = fmodf(camera.target.x * layer.scrollSpeed, scaledWidth);
+
+        // Definiere Quell- und Ziel-Rechtecke für DrawTexturePro
+        Rectangle source = { 0.0f, 0.0f, (float)layer.texture.width, (float)layer.texture.height };
+        
+        // Zeichne die Textur zweimal nebeneinander, skaliert auf volle Höhe
+        Rectangle dest1 = { -scrollOffset, 0, scaledWidth, (float)VIRTUAL_SCREEN_HEIGHT };
+        Rectangle dest2 = { scaledWidth - scrollOffset, 0, scaledWidth, (float)VIRTUAL_SCREEN_HEIGHT };
+
+        DrawTexturePro(layer.texture, source, dest1, {0, 0}, 0.0f, WHITE);
+        DrawTexturePro(layer.texture, source, dest2, {0, 0}, 0.0f, WHITE);
     }
 
-    // Starte den 2D-Kameramodus. Alles was jetzt gezeichnet wird, bewegt sich mit der Welt.
+
+    // --- HAUPT-SPIELWELT ZEICHNEN ---
     BeginMode2D(camera);
 
         for (const auto& platform : platforms) {
@@ -110,14 +122,13 @@ void GameScreen::draw() const
         }
 
         player.draw();
+        combatSystem.draw(); 
 
     EndMode2D();
-    // Ende des Kameramodus
 
-    // Zeichne statische UI-Elemente (z.B. Score, Leben), die sich nicht bewegen sollen
+    // --- UI ZEICHNEN ---
     if (levelMgr && currentLevel != -1) {
-        const LevelInfo &info = levelMgr->get(currentLevel);
+        const LevelInfo& info = levelMgr->get(currentLevel);
         DrawText(TextFormat("Du spielst: %s", info.name.c_str()), 20, 20, 30, GOLD);
     }
-    DrawText("Drücke ESC zum Verlassen", 20, 60, 20, RAYWHITE);
 }

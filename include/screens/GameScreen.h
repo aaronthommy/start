@@ -6,6 +6,7 @@
 #include "core/LevelManager.h"
 #include "core/Player.h"
 #include <functional>
+#include "core/CombatSystem.h"
 #include <vector>
 
 // Eine kleine Struktur, die eine Ebene unseres Parallax-Hintergrunds beschreibt
@@ -31,6 +32,7 @@ private:
     int currentLevel = -1;
     Player player;
     Camera2D camera;
+    CombatSystem combatSystem;
     
     std::vector<ParallaxLayer> backgroundLayers;
     std::vector<Rectangle> platforms;

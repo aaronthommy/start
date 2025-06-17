@@ -3,7 +3,9 @@
 #pragma once
 #include "raylib.h"
 #include <vector>
+#include <memory>  
 #include "core/Character.h"
+#include "core/abilities/IAbility.h"
 
 class Player : public Character{
 public:
@@ -14,6 +16,7 @@ public:
     void draw() const;
     void reset();
     void setPosition(Vector2 newPosition);
+    void usePrimaryAbility(CombatSystem& combatSystem, Vector2 target);
     Vector2 getPosition() const;
 
 private:
@@ -30,4 +33,6 @@ private:
     static constexpr float GRAVITY = 1200.0f;
     static constexpr float MOVE_SPEED = 300.0f;
     static constexpr float JUMP_SPEED = -600.0f;
+
+    std::unique_ptr<IAbility> primaryAbility;
 };
