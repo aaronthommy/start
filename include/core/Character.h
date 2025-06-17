@@ -20,8 +20,17 @@ public:
     Stats&       stats()       { return base; }
     AbilityManager& abilities() { return abilityMgr; }
     Vector2 position() const   { return pos; }
+    Vector2 size;
 
-private:
+    Vector2 getCenter() const {
+        return { pos.x + size.x / 2.0f, pos.y + size.y / 2.0f };;
+    }
+    
+    Rectangle getBounds() const {
+        return { pos.x, pos.y, size.x, size.y };
+    }
+
+protected:
     Texture2D texture;
     Vector2   pos;
     Vector2   vel;

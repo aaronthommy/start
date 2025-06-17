@@ -3,8 +3,9 @@
 #pragma once
 #include "raylib.h"
 #include <vector>
+#include "core/Character.h"
 
-class Player {
+class Player : public Character{
 public:
     Player();
     void load();
@@ -12,14 +13,11 @@ public:
     void update(float delta, const std::vector<Rectangle>& platforms); 
     void draw() const;
     void reset();
-    Rectangle getBounds() const;
     void setPosition(Vector2 newPosition);
     Vector2 getPosition() const;
 
 private:
     Texture2D sprite;
-    Vector2 position;
-    Vector2 velocity;
     bool canJump;
 
     int frameCount;      // Wie viele Frames hat die Animation? (z.B. 20)
