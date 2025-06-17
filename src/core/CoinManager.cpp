@@ -35,3 +35,4 @@ void CoinManager::draw() const {
 void CoinManager::clear() {
     coins.clear();
     collectedThisLevel = 0;
+}
