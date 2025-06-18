@@ -34,5 +34,7 @@ private:
     static constexpr float MOVE_SPEED = 300.0f;
     static constexpr float JUMP_SPEED = -600.0f;
 
+    float primaryAbilityCooldownTimer = 0.0f;
+
     std::unique_ptr<IAbility> primaryAbility;
 };

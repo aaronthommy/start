@@ -38,9 +38,14 @@ void Player::setPosition(Vector2 newPosition)
 
 void Player::usePrimaryAbility(CombatSystem& combatSystem, Vector2 target)
 {
-    if (primaryAbility) {
-        // Rufe die execute-Methode der aktuell zugewiesenen Fähigkeit auf
-        primaryAbility->execute(combatSystem, *this, target);
+     if (primaryAbility) {
+        if (primaryAbilityCooldownTimer <= 0) { // Nur ausführen, wenn der Timer bei 0 ist
+            // Führe die Fähigkeit aus
+            primaryAbility->execute(combatSystem, *this, target);
+            
+            // Setze den Timer auf die Cooldown-Zeit der Fähigkeit zurück
+            primaryAbilityCooldownTimer = primaryAbility->cooldown; 
+        }
     }
 }
 
@@ -57,6 +62,10 @@ void Player::unload()
 
 void Player::update(float delta, const std::vector<Rectangle> &platforms)
 {
+
+    if (primaryAbilityCooldownTimer > 0) {
+        primaryAbilityCooldownTimer -= delta;
+    }
     // --- Eingabe verarbeiten ---
     vel.x = 0;
     bool isMoving = false;

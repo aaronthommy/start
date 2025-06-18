@@ -22,9 +22,12 @@ private:
     static Texture2D spriteSheet; 
 
     // KORREKTUR: Das Orb-Sprite-Sheet hat 4 Frames.
-    int frameCount = 3;
+    int frameCount = 4;
     int currentFrame = 0;
-    float frameTimer = 0.8f;
-    float frameSpeed = 1.0f / 15.0f;
+
+    // KORREKTUR: Der Timer muss bei 0 starten.
+    float frameTimer = 0.0f; 
+    
+    float frameSpeed = 1.0f / 15.0f; // 15 FPS
     float lifetime = 2.0f;
 };
