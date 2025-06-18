@@ -5,6 +5,7 @@
 #include "raylib.h"
 #include "core/LevelManager.h"
 #include "core/Player.h"
+#include "core/Platform.h" 
 #include <functional>
 #include "core/CombatSystem.h"
 #include <vector>
@@ -35,7 +36,6 @@ private:
     CombatSystem combatSystem;
     
     std::vector<ParallaxLayer> backgroundLayers;
-    std::vector<Rectangle> platforms;
-    
+    std::vector<Platform> platforms; 
     std::function<void()> onFinish;
 };

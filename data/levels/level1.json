@@ -13,7 +13,9 @@
     },
 
     "platforms": [
-        { "x": 0, "y": 980, "width": 1920, "height": 100 },
-        { "x": 400, "y": 850, "width": 250, "height": 40 }
+        { "x": 0, "y": 980, "width": 1920, "height": 100,
+        "texture_path": "assets/textures/platforms/grass.png"  },
+        { "x": 400, "y": 850, "width": 250, "height": 40,
+        "texture_path": "assets/textures/platforms/grass.png" }
     ]
 }

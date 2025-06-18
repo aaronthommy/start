@@ -34,6 +34,7 @@ target_include_directories(jump-run PRIVATE
     include
     include/core
     include/core/abilities
+    external/raylib-extras
     include/screens
     external/raygui
     ${NLOHMANN_JSON_INCLUDE_DIR}

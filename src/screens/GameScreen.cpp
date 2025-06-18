@@ -3,9 +3,11 @@
 #include "screens/GameScreen.h"
 #include "config.h"
 #include "core/Projectile.h"
+#include "core/Platform.h"
 #include "nlohmann/json.hpp"
 #include <fstream>
 #include <cmath>
+#include "external/raylib-extras/rtextures.h"
 
 using json = nlohmann::json;
 
@@ -55,9 +57,12 @@ void GameScreen::load(LevelManager* levelManager, int levelIndex)
     
     combatSystem.registerPlayer(&player);
 
-    platforms.clear();
+     platforms.clear();
     for (const auto& pData : data["platforms"]) {
-        platforms.push_back({ pData["x"], pData["y"], pData["width"], pData["height"] });
+        platforms.push_back({
+            { pData["x"], pData["y"], pData["width"], pData["height"] }, // Das Rectangle
+            LoadTexture(std::string(pData["texture_path"]).c_str())      // Die Textur
+        });
     }
 }
 
@@ -69,6 +74,10 @@ void GameScreen::unload()
         UnloadTexture(layer.texture);
     }
     backgroundLayers.clear();
+    for (auto& platform : platforms) {
+        UnloadTexture(platform.texture);
+    }
+    platforms.clear();
 }
 
 void GameScreen::update()
@@ -77,7 +86,13 @@ void GameScreen::update()
         if (onFinish) onFinish();
         return;
     }
-    player.update(GetFrameTime(), platforms);
+    std::vector<Rectangle> platformBounds;
+    for (const auto& platform : platforms) {
+        platformBounds.push_back(platform.bounds);
+    }
+    
+    // Übergib die temporäre Liste an den Spieler für die Kollisionsabfrage
+    player.update(GetFrameTime(), platformBounds);
     camera.target = player.getPosition();
 
     if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
@@ -118,9 +133,17 @@ void GameScreen::draw() const
     BeginMode2D(camera);
 
         for (const auto& platform : platforms) {
-            DrawRectangleRec(platform, DARKGRAY);
+            // DrawRectangleRec(platform, DARKGRAY); // <-- ERSETZEN
+            
+            // Zeichne die Textur gekachelt über die gesamte Plattform
+            DrawTextureTiled(
+                platform.texture,
+                { 0, 0, (float)platform.texture.width, (float)platform.texture.height },
+                platform.bounds,
+                { 0, 0 },
+                0.0f, 1.0f, WHITE
+            );
         }
-
         player.draw();
         combatSystem.draw(); 
 
