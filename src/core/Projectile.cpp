@@ -2,10 +2,12 @@
 #include "core/Projectile.h"
 #include "raymath.h"
 
+const float PROJECTILE_GRAVITY = 980.0f; 
+const float PROJECTILE_SPEED = 800.0f;
+
 // Initialisiere die statische Textur außerhalb der Klasse
 Texture2D Projectile::spriteSheet = { 0 };
 
-const float PROJECTILE_SPEED = 800.0f;
 
 // Die Ladefunktion, die nur einmal aufgerufen wird
 void Projectile::loadTexture() {
@@ -33,6 +35,8 @@ void Projectile::update(float delta) {
         // Wichtig: hier kein Unload mehr!
         return;
     }
+
+    velocity.y += PROJECTILE_GRAVITY * delta;
 
     position.x += velocity.x * delta;
     position.y += velocity.y * delta;
