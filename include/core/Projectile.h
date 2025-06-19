@@ -1,4 +1,3 @@
-// include/core/Projectile.h
 #pragma once
 #include "raylib.h"
 
@@ -18,16 +17,10 @@ public:
     Vector2 size = {32, 32}; 
 
 private:
-    // Die Textur ist 'static', d.h. alle Projektile teilen sich dieselbe.
     static Texture2D spriteSheet; 
-
-    // KORREKTUR: Das Orb-Sprite-Sheet hat 4 Frames.
     int frameCount = 4;
     int currentFrame = 0;
-
-    // KORREKTUR: Der Timer muss bei 0 starten.
-    float frameTimer = 0.0f; 
-    
-    float frameSpeed = 1.0f / 15.0f; // 15 FPS
+    float frameTimer = 0.0f;
+    float frameSpeed = 1.0f / 15.0f;
     float lifetime = 2.0f;
 };

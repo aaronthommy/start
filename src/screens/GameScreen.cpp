@@ -1,5 +1,8 @@
 // src/screens/GameScreen.cpp
 
+#define RTEXTURES_IMPLEMENTATION
+#include "rtextures.h"
+
 #include "screens/GameScreen.h"
 #include "config.h"
 #include "core/Projectile.h"
@@ -7,7 +10,6 @@
 #include "nlohmann/json.hpp"
 #include <fstream>
 #include <cmath>
-#include "external/raylib-extras/rtextures.h"
 
 using json = nlohmann::json;
 
@@ -17,7 +19,7 @@ using json = nlohmann::json;
 
 GameScreen::GameScreen()
 {
-    camera = { 0 };
+    camera = { {0,0}, {0,0}, 0.0f, 1.0f }; // Neue, explizite Zeile
     camera.offset = {(float)VIRTUAL_SCREEN_WIDTH / 2.0f, (float)VIRTUAL_SCREEN_HEIGHT / 2.0f};
     camera.rotation = 0.0f;
     camera.zoom = 1.0f;

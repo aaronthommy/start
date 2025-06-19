@@ -4,7 +4,7 @@
 
 // Hier ist die Implementierung für den Konstruktor, den der Player jetzt aufruft
 Character::Character(const Texture2D& tex, Vector2 spawn)
-    : texture(tex), pos(spawn), size({100, 100})  // Initialisiere die Mitglieder
+    : texture(tex), size({100, 100}), pos(spawn) // Korrigierte Reihenfolge
 {
     // Hier könnten weitere Initialisierungen für Character stehen
     // z.B. hp = base.maxHp;
