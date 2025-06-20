@@ -1,7 +1,7 @@
 #include "core/Player.h"
 #include "SpriteUtils.h"
 #include "core/abilities/ProjectileAbility.h" // <- Die konkrete Fähigkeit einbinden
-#include "core/CombatSystem.h" 
+#include "core/CombatSystem.h"
 #include "config.h" // <-- WICHTIG: Einbinden, um die virtuellen Dimensionen zu kennen
 
 Player::Player() : Character(Texture2D{}, Vector2{}) // Rufe den Character-Konstruktor mit leeren Werten auf
@@ -13,9 +13,9 @@ void Player::reset()
 {
     pos = {100, 100}; // Startposition
     vel = {0, 0};     // Keine Anfangsgeschwindigkeit
-    canJump = false;       // Kann am Anfang nicht springen (erst bei Bodenkontakt)
+    canJump = false;  // Kann am Anfang nicht springen (erst bei Bodenkontakt)
 
-    size = {100, 100};   
+    size = {100, 100};
 
     frameCount = 4; // Dein Player-Sprite hat 20 Frames
     currentFrame = 0;
@@ -36,15 +36,17 @@ void Player::setPosition(Vector2 newPosition)
     pos = newPosition;
 }
 
-void Player::usePrimaryAbility(CombatSystem& combatSystem, Vector2 target)
+void Player::usePrimaryAbility(CombatSystem &combatSystem, Vector2 target)
 {
-     if (primaryAbility) {
-        if (primaryAbilityCooldownTimer <= 0) { // Nur ausführen, wenn der Timer bei 0 ist
+    if (primaryAbility)
+    {
+        if (primaryAbilityCooldownTimer <= 0)
+        { // Nur ausführen, wenn der Timer bei 0 ist
             // Führe die Fähigkeit aus
             primaryAbility->execute(combatSystem, *this, target);
-            
+
             // Setze den Timer auf die Cooldown-Zeit der Fähigkeit zurück
-            primaryAbilityCooldownTimer = primaryAbility->cooldown; 
+            primaryAbilityCooldownTimer = primaryAbility->cooldown;
         }
     }
 }
@@ -62,8 +64,8 @@ void Player::unload()
 
 void Player::update(float delta, const std::vector<Rectangle> &platforms)
 {
-
-    if (primaryAbilityCooldownTimer > 0) {
+    if (primaryAbilityCooldownTimer > 0)
+    {
         primaryAbilityCooldownTimer -= delta;
     }
     // --- Eingabe verarbeiten ---
@@ -133,13 +135,13 @@ void Player::update(float delta, const std::vector<Rectangle> &platforms)
         if (CheckCollisionRecs(playerBounds, platform))
         {
             if (vel.y > 0)
-            {                                                  // Fällt nach unten
+            {                                             // Fällt nach unten
                 pos.y = platform.y - playerBounds.height; // Auf Plattform landen
                 vel.y = 0;
                 canJump = true; // Kann wieder springen
             }
             else if (vel.y < 0)
-            {                                              // Springt nach oben
+            {                                         // Springt nach oben
                 pos.y = platform.y + platform.height; // An Unterseite stoppen
                 vel.y = 0;
             }
@@ -176,4 +178,3 @@ void Player::draw() const
 
     DrawCircleV(getCenter(), 5, RED);
 }
-

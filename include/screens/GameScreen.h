@@ -8,11 +8,18 @@
 #include <functional>
 #include "core/CombatSystem.h"
 #include <vector>
+#include <string> // <-- HIER HINZUFÜGEN
+#include <map> 
 
 // Eine kleine Struktur, die eine Ebene unseres Parallax-Hintergrunds beschreibt
 struct ParallaxLayer {
     Texture2D texture;
     float scrollSpeed;
+};
+
+struct Platform {
+    Rectangle bounds;
+    std::string textureId; // Z.B. "grass", "stone", ...
 };
 
 class GameScreen {
@@ -35,7 +42,8 @@ private:
     CombatSystem combatSystem;
     
     std::vector<ParallaxLayer> backgroundLayers;
-    std::vector<Rectangle> platforms;
-    
+    std::vector<Platform> platforms;
+
+    std::map<std::string, Texture2D> platformTextures; 
     std::function<void()> onFinish;
 };

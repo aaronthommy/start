@@ -1,5 +1,3 @@
-// src/screens/GameScreen.cpp
-
 #include "screens/GameScreen.h"
 #include "config.h"
 #include "core/Projectile.h"
@@ -9,9 +7,45 @@
 
 using json = nlohmann::json;
 
-// Die Methoden GameScreen(), ~GameScreen(), load(), unload() und update() 
-// bleiben exakt so, wie sie in der letzten Antwort waren.
-// Ich füge sie hier der Vollständigkeit halber nochmal ein.
+//Helferfunktion: 
+void DrawTextureTiled(Texture2D texture, Rectangle source, Rectangle dest, Vector2 origin, float rotation, float scale, Color tint)
+{
+    if ((texture.id <= 0) || (scale <= 0.0f)) return; // Nichts tun bei ungültiger Textur oder Skalierung
+    if ((source.width == 0) || (source.height == 0)) return;
+
+    int tileWidth = (int)(source.width * scale);
+    int tileHeight = (int)(source.height * scale);
+
+    // Startkoordinaten für das Zeichnen
+    float startX = dest.x;
+    float startY = dest.y;
+
+    // Schleife, um den Zielbereich (dest) Kachel für Kachel zu füllen
+    for (int y = 0; y < (int)dest.height; y += tileHeight)
+    {
+        for (int x = 0; x < (int)dest.width; x += tileWidth)
+        {
+            // Bestimme den Quell-Ausschnitt der Textur für die aktuelle Kachel
+            Rectangle currentSource = source;
+
+            // Prüfe, ob die Kachel am rechten Rand abgeschnitten werden muss
+            if (x + tileWidth > (int)dest.width) {
+                currentSource.width = ((float)dest.width - x) / scale;
+            }
+
+            // Prüfe, ob die Kachel am unteren Rand abgeschnitten werden muss
+            if (y + tileHeight > (int)dest.height) {
+                currentSource.height = ((float)dest.height - y) / scale;
+            }
+            
+            // Zeichne die aktuelle Kachel mit DrawTexturePro
+            DrawTexturePro(texture, 
+                           currentSource,
+                           {startX + x, startY + y, currentSource.width * scale, currentSource.height * scale},
+                           origin, rotation, tint);
+        }
+    }
+}
 
 GameScreen::GameScreen()
 {
@@ -57,7 +91,18 @@ void GameScreen::load(LevelManager* levelManager, int levelIndex)
 
     platforms.clear();
     for (const auto& pData : data["platforms"]) {
-        platforms.push_back({ pData["x"], pData["y"], pData["width"], pData["height"] });
+        Platform p;
+        p.bounds = { pData["x"], pData["y"], pData["width"], pData["height"] };
+        
+        if (pData.contains("texture_id")) {
+            p.textureId = pData["texture_id"];
+            // Lade die Textur, wenn sie noch nicht geladen wurde
+            if (platformTextures.find(p.textureId) == platformTextures.end()) {
+                std::string texturePath = "assets/graphics/textures/" + p.textureId + ".png";
+                platformTextures[p.textureId] = LoadTexture(texturePath.c_str());
+            }
+        }
+        platforms.push_back(p);
     }
 }
 
@@ -69,6 +114,12 @@ void GameScreen::unload()
         UnloadTexture(layer.texture);
     }
     backgroundLayers.clear();
+
+    // Entlade alle Plattform-Texturen
+    for (auto const& [key, val] : platformTextures) {
+        UnloadTexture(val);
+    }
+    platformTextures.clear();
 }
 
 void GameScreen::update()
@@ -77,7 +128,14 @@ void GameScreen::update()
         if (onFinish) onFinish();
         return;
     }
-    player.update(GetFrameTime(), platforms);
+    
+    // Erstelle eine temporäre Liste von Rectangles für die Kollisionserkennung
+    std::vector<Rectangle> platformBounds;
+    for(const auto& p : platforms) {
+        platformBounds.push_back(p.bounds);
+    }
+    
+    player.update(GetFrameTime(), platformBounds);
     camera.target = player.getPosition();
 
     if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
@@ -88,24 +146,18 @@ void GameScreen::update()
 }
 
 
-// HIER IST DIE NEUE, KORRIGIERTE ZEICHENMETHODE
 void GameScreen::draw() const
 {
-    ClearBackground(BLACK); // Füllt den echten Bildschirm mit Schwarz
+    ClearBackground(BLACK); 
 
-    // --- PARALLAX-EBENEN ZEICHNEN ---
     for (const auto& layer : backgroundLayers) {
-        // Berechne die Skalierung, um die Höhe des Bildschirms zu füllen
         float scale = (float)VIRTUAL_SCREEN_HEIGHT / (float)layer.texture.height;
         float scaledWidth = (float)layer.texture.width * scale;
 
-        // Berechne den Offset für nahtloses Scrollen
         float scrollOffset = fmodf(camera.target.x * layer.scrollSpeed, scaledWidth);
 
-        // Definiere Quell- und Ziel-Rechtecke für DrawTexturePro
         Rectangle source = { 0.0f, 0.0f, (float)layer.texture.width, (float)layer.texture.height };
         
-        // Zeichne die Textur zweimal nebeneinander, skaliert auf volle Höhe
         Rectangle dest1 = { -scrollOffset, 0, scaledWidth, (float)VIRTUAL_SCREEN_HEIGHT };
         Rectangle dest2 = { scaledWidth - scrollOffset, 0, scaledWidth, (float)VIRTUAL_SCREEN_HEIGHT };
 
@@ -114,11 +166,18 @@ void GameScreen::draw() const
     }
 
 
-    // --- HAUPT-SPIELWELT ZEICHNEN ---
     BeginMode2D(camera);
 
         for (const auto& platform : platforms) {
-            DrawRectangleRec(platform, DARKGRAY);
+            if (!platform.textureId.empty() && platformTextures.count(platform.textureId)) {
+                const Texture2D& tex = platformTextures.at(platform.textureId);
+                DrawTextureTiled(tex, 
+                                 {0, 0, (float)tex.width, (float)tex.height}, 
+                                 platform.bounds, 
+                                 {0, 0}, 0.0f, 1.0f, WHITE);
+            } else {
+                DrawRectangleRec(platform.bounds, DARKGRAY);
+            }
         }
 
         player.draw();
@@ -126,7 +185,6 @@ void GameScreen::draw() const
 
     EndMode2D();
 
-    // --- UI ZEICHNEN ---
     if (levelMgr && currentLevel != -1) {
         const LevelInfo& info = levelMgr->get(currentLevel);
         DrawText(TextFormat("Du spielst: %s", info.name.c_str()), 20, 20, 30, GOLD);

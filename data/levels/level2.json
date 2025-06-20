@@ -1,41 +1,27 @@
 {
     "level_name": "Wolkenhüpfer",
-    
     "background_layers": [
         { "path": "assets/graphics/backgrounds/sky.png",   "scroll_speed": 0.2 },
         { "path": "assets/graphics/backgrounds/high_mountains.png", "scroll_speed": 0.5 },
         { "path": "assets/graphics/backgrounds/high_trees.png", "scroll_speed": 0.8 }
     ],
-
     "player_start": {
         "x": 200,
         "y": 880
     },
-
     "platforms": [
-      
-        { "x": 100, "y": 980, "width": 400, "height": 100 },
-
-     
-        { "x": 650, "y": 900, "width": 150, "height": 40 },
-        { "x": 900, "y": 820, "width": 150, "height": 40 },
-
-       
-        { "x": 1200, "y": 750, "width": 100, "height": 330 }, 
-        { "x": 1100, "y": 600, "width": 100, "height": 40 },
-        { "x": 1300, "y": 480, "width": 100, "height": 40 },
-        
-        { "x": 1000, "y": 400, "width": 80, "height": 30 },
-        { "x": 800, "y": 350, "width": 80, "height": 30 },
-        { "x": 600, "y": 400, "width": 80, "height": 30 },
-
-       
-        { "x": 0, "y": 600, "width": 450, "height": 80 },
-
-      
-        { "x": 1600, "y": 300, "width": 320, "height": 100 }
+        { "x": 100, "y": 980, "width": 400, "height": 100, "texture_id": "grass" },
+        { "x": 650, "y": 900, "width": 150, "height": 40, "texture_id": "metal" },
+        { "x": 900, "y": 820, "width": 150, "height": 40, "texture_id": "metal" },
+        { "x": 1200, "y": 750, "width": 100, "height": 330, "texture_id": "stone" },
+        { "x": 1100, "y": 600, "width": 100, "height": 40, "texture_id": "stone" },
+        { "x": 1300, "y": 480, "width": 100, "height": 40, "texture_id": "stone" },
+        { "x": 1000, "y": 400, "width": 80, "height": 30, "texture_id": "metal" },
+        { "x": 800, "y": 350, "width": 80, "height": 30, "texture_id": "metal" },
+        { "x": 600, "y": 400, "width": 80, "height": 30, "texture_id": "metal" },
+        { "x": 0, "y": 600, "width": 450, "height": 80, "texture_id": "grass" },
+        { "x": 1600, "y": 300, "width": 320, "height": 100, "texture_id": "grass" }
     ],
-
     "enemies": [
         { "type": "duck", "x": 925, "y": 770 },
         { "type": "duck", "x": 1650, "y": 250 }
