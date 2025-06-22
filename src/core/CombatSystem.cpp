@@ -9,18 +9,27 @@
 
 void CombatSystem::spawnProjectile(Vector2 startPos, Vector2 direction)
 {
-    // Erstellt ein neues Projektil und fügt es zur Liste hinzu
     projectiles.emplace_back(startPos, direction);
 }
 
-void CombatSystem::update(float delta)
+void CombatSystem::update(float dt, const std::vector<Rectangle>& platforms)
 {
-    // Aktualisiere alle Projektile
     for (auto& proj : projectiles) {
-        proj.update(delta);
+        proj.update(dt);
+
+        if (!proj.active) {
+            continue;
+        }
+
+        Rectangle projBounds = proj.getBounds(); // Hol die Bounding Box des Projektils
+        for (const auto& platformRect : platforms) {
+            if (CheckCollisionRecs(projBounds, platformRect)) {
+                proj.active = false;
+                break; 
+            }
+        }
     }
 
-    // Entferne alle inaktiven Projektile (deren Lebenszeit abgelaufen ist)
     projectiles.erase(
         std::remove_if(projectiles.begin(), projectiles.end(), 
             [](const Projectile& proj) {
@@ -28,10 +37,6 @@ void CombatSystem::update(float delta)
             }),
         projectiles.end()
     );
-
-    // HIER kommt später die Kollisionsabfrage hin:
-    // - Projektil trifft Gegner?
-    // - Projektil trifft Wand?
 }
 
 void CombatSystem::draw() const

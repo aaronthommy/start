@@ -8,7 +8,7 @@ class CombatSystem {
 public:
     void registerPlayer(Character* p)   { player = p; }
     void registerEnemy (Character* e)   { enemies.push_back(e); }
-    void update(float dt);              // prüft Kollisionen & Schaden
+    void update(float dt, const std::vector<Rectangle>& platforms);
     void draw() const;
     void spawnProjectile(Vector2 startPos, Vector2 direction);
 

@@ -9,6 +9,9 @@ public:
     void draw() const;
 
     // Statische Funktionen, die einmalig vom GameScreen aufgerufen werden
+
+    Rectangle getBounds() const;
+    
     static void loadTexture();
     static void unloadTexture();
 

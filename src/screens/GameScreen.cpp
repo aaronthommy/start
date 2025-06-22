@@ -142,7 +142,7 @@ void GameScreen::update()
         Vector2 mouseTarget = GetScreenToWorld2D(GetMousePosition(), camera);
         player.usePrimaryAbility(combatSystem, mouseTarget);
     }
-    combatSystem.update(GetFrameTime());
+    combatSystem.update(GetFrameTime(), platformBounds);
 }
 
 

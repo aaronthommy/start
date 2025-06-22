@@ -48,6 +48,11 @@ void Projectile::update(float delta) {
     }
 }
 
+Rectangle Projectile::getBounds() const {
+    // Gibt das Rechteck des Projektils basierend auf seiner Position und Größe zurück.
+    return { position.x, position.y, size.x, size.y };
+}
+
 void Projectile::draw() const {
     if (active) {
         float frameWidth = (float)spriteSheet.width / frameCount;
