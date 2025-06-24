@@ -1,11 +1,17 @@
-// src/core/CombatSystem.cpp
-
 #include "core/CombatSystem.h"
 #include "core/Projectile.h"
 #include "core/Character.h"
-#include "ProjectileAbility.h"
-#include "raylib.h" // Für Vector2
-#include <algorithm> // Für std::remove_if
+#include "core/abilities/ProjectileAbility.h" //<- Pfad ggf. anpassen, falls in "core/abilities"
+#include "raylib.h"
+#include <algorithm>
+
+// NEU: Leert alle Listen, wenn ein Level verlassen wird.
+void CombatSystem::clearAll()
+{
+    player = nullptr;
+    enemies.clear();
+    projectiles.clear();
+}
 
 void CombatSystem::spawnProjectile(Vector2 startPos, Vector2 direction)
 {
@@ -14,6 +20,7 @@ void CombatSystem::spawnProjectile(Vector2 startPos, Vector2 direction)
 
 void CombatSystem::update(float dt, const std::vector<Rectangle>& platforms)
 {
+    // --- Projektile aktualisieren und auf Kollision mit Plattformen prüfen ---
     for (auto& proj : projectiles) {
         proj.update(dt);
 
@@ -21,15 +28,16 @@ void CombatSystem::update(float dt, const std::vector<Rectangle>& platforms)
             continue;
         }
 
-        Rectangle projBounds = proj.getBounds(); // Hol die Bounding Box des Projektils
+        Rectangle projBounds = proj.getBounds();
         for (const auto& platformRect : platforms) {
             if (CheckCollisionRecs(projBounds, platformRect)) {
-                proj.active = false;
+                proj.active = false; // Deaktiviere Projektil bei Treffer
                 break; 
             }
         }
     }
 
+    // Entferne alle inaktiven Projektile
     projectiles.erase(
         std::remove_if(projectiles.begin(), projectiles.end(), 
             [](const Projectile& proj) {
@@ -37,11 +45,12 @@ void CombatSystem::update(float dt, const std::vector<Rectangle>& platforms)
             }),
         projectiles.end()
     );
+
+    // TODO: Später hier Kollision zwischen Projektilen und Gegnern einfügen
 }
 
 void CombatSystem::draw() const
 {
-    // Zeichne alle aktiven Projektile
     for (const auto& proj : projectiles) {
         proj.draw();
     }

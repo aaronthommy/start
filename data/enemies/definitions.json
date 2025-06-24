@@ -1,0 +1,11 @@
+{
+    "duck": {
+        "sprite_path": "assets/graphics/enemies/duck_spritesheet.png",
+        "frame_count": 4,
+        "health": 100,
+        "speed": 60.0,
+        "width": 80,
+        "height": 80,
+        "gravity": true
+    }
+}

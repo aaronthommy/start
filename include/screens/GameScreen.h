@@ -1,17 +1,17 @@
-// include/screens/GameScreen.h
-
 #pragma once
 
 #include "raylib.h"
 #include "core/LevelManager.h"
 #include "core/Player.h"
-#include <functional>
 #include "core/CombatSystem.h"
+#include "core/Enemy.h" // <-- NEU
+#include "nlohmann/json.hpp" // <-- NEU
+
+#include <functional>
 #include <vector>
-#include <string> // <-- HIER HINZUFÜGEN
+#include <string>
 #include <map> 
 
-// Eine kleine Struktur, die eine Ebene unseres Parallax-Hintergrunds beschreibt
 struct ParallaxLayer {
     Texture2D texture;
     float scrollSpeed;
@@ -19,13 +19,13 @@ struct ParallaxLayer {
 
 struct Platform {
     Rectangle bounds;
-    std::string textureId; // Z.B. "grass", "stone", ...
+    std::string textureId;
 };
 
 class GameScreen {
 public:
     GameScreen();
-    ~GameScreen(); // Wichtig, um Texturen sauber zu entladen
+    ~GameScreen();
 
     void load(LevelManager* levelManager, int levelIndex);
     void unload();
@@ -43,6 +43,12 @@ private:
     
     std::vector<ParallaxLayer> backgroundLayers;
     std::vector<Platform> platforms;
+    
+    // NEU: Ein Vektor, der alle Gegner-Objekte im Level besitzt.
+    std::vector<Enemy> enemies; 
+    
+    // NEU: Eine Map, die die JSON-Definitionen für jeden Gegnertyp speichert.
+    std::map<std::string, nlohmann::json> enemyDefinitions;
 
     std::map<std::string, Texture2D> platformTextures; 
     std::function<void()> onFinish;

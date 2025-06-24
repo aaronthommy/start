@@ -1,42 +1,52 @@
 #pragma once
+
 #include "raylib.h"
-#include "Stats.h"
-#include "AbilityManager.h"
+#include "core/Stats.h"
+#include "core/abilities/IAbility.h"
+#include <memory>
+
+class CombatSystem;
 
 class Character {
 public:
-    Character(const Texture2D& tex, Vector2 spawn);
+    // Der Destruktor sollte bei Basisklassen immer virtual sein!
+    virtual ~Character() = default;
 
-    void update(float dt);
+    Character(Texture2D spr, Vector2 startPos);
+
     void draw() const;
 
-    // Kampf
-    void takeDamage(int dmg);
-    void attack(Character& target);
-    bool isDead() const { return hp <= 0; }
+    // WICHTIG: Diese Methode muss virtual sein, damit die Enemy-Klasse sie überschreiben kann.
+    virtual void update(float dt, const std::vector<Rectangle>& platforms);
 
-    // Zugriff
-    const Stats& stats() const { return base; }
-    Stats&       stats()       { return base; }
-    AbilityManager& abilities() { return abilityMgr; }
-    Vector2 position() const   { return pos; }
-    Vector2 size;
+    void usePrimaryAbility(CombatSystem& combatSystem, Vector2 target);
 
-    Vector2 getCenter() const {
-        return { pos.x + size.x / 2.0f, pos.y + size.y / 2.0f };;
-    }
-    
-    Rectangle getBounds() const {
-        return { pos.x, pos.y, size.x, size.y };
-    }
+    // Getter-Methoden, damit andere Teile des Codes sicher auf die Position zugreifen können.
+    Vector2 getPosition() const { return pos; }
+    Vector2 getCenter() const { return { pos.x + bounds.width / 2, pos.y + bounds.height / 2 }; }
+    Rectangle getBounds() const { return bounds; }
+    void setPosition(Vector2 newPos) { pos = newPos; bounds.x = newPos.x; bounds.y = newPos.y; }
+    void load();
+    void unload();
 
-protected:
-    Texture2D texture;
-    Vector2   pos;
-    Vector2   vel;
-    Stats     base;
-    int       hp;
-    AbilityManager abilityMgr;
 
-    float invTime = 0.f;               // Unverwundbarkeit nach Hit
+// HIER IST DIE WICHTIGSTE ÄNDERUNG: private -> protected
+protected: 
+    Vector2 pos;
+    Vector2 vel;
+    Rectangle bounds;
+    Stats stats;
+
+    Texture2D sprite;
+    int currentFrame = 0;
+    int frameCount = 1;
+    float frameTimer = 0.0f;
+    float frameSpeed = 1.0f / 12.0f; // 12 FPS
+
+    bool facingRight = true;
+    bool canJump = false;
+
+    // Fähigkeiten
+    std::unique_ptr<IAbility> primaryAbility;
+    float primaryAbilityCooldownTimer = 0.0f;
 };
