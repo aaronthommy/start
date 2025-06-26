@@ -1,5 +1,3 @@
-// src/main.cpp
-
 #include "raylib.h"
 #include "core/GameState.h"
 #include "screens/LevelSelectScreen.h"

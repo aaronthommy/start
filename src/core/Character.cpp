@@ -1,5 +1,3 @@
-// src/core/Character.cpp
-
 #include "core/Character.h"
 
 // Hier ist die Implementierung für den Konstruktor, den der Player jetzt aufruft
@@ -7,7 +5,7 @@ Character::Character(const Texture2D& tex, Vector2 spawn)
     : texture(tex), pos(spawn), size({100, 100})  // Initialisiere die Mitglieder
 {
     // Hier könnten weitere Initialisierungen für Character stehen
-    // z.B. hp = base.maxHp;
+    hp = base.maxHP;
 }
 
 // Implementiere die anderen Character-Funktionen hier, falls nötig

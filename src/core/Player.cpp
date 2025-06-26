@@ -6,7 +6,7 @@
 
 Player::Player() : Character(Texture2D{}, Vector2{}) // Rufe den Character-Konstruktor mit leeren Werten auf
 {
-    reset(); // Setzt dann die richtigen Werte
+    reset(); 
 }
 
 void Player::reset()
@@ -24,6 +24,8 @@ void Player::reset()
     facingRight = true;
 
     primaryAbility = std::make_unique<ProjectileAbility>();
+
+    hp = base.maxHP;
 }
 
 Vector2 Player::getPosition() const
