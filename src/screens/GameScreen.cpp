@@ -54,7 +54,7 @@ void DrawTextureTiled(Texture2D texture, Rectangle source, Rectangle dest, Vecto
 GameScreen::GameScreen()
 {
     camera = {0};
-    camera.offset = {(float)VIRTUAL_SCREEN_WIDTH / 2.0f, (float)VIRTUAL_SCREEN_HEIGHT / 2.0f};
+    camera.offset = {(float)VIRTUAL_SCREEN_WIDTH / 2, (float)VIRTUAL_SCREEN_HEIGHT / 2 };
     camera.rotation = 0.0f;
     camera.zoom = 1.0f;
 }

@@ -6,8 +6,24 @@
 
 Player::Player() : Character(Texture2D{}, Vector2{}) // Rufe den Character-Konstruktor mit leeren Werten auf
 {
-    reset(); 
+    reset();
 }
+
+void Player::load()
+{
+    // Wir nehmen den Sprite, der schon in main geladen wurde
+    spriteIdle = loadSprite("assets/sprites/player/player.png", 1);
+    spriteRun = loadSprite("assets/sprites/player/run_anim.png", 8);
+    spriteJump = loadSprite("assets/sprites/player/jump_anim.png", 12);
+}
+
+void Player::unload()
+{
+    UnloadTexture(spriteIdle);
+    UnloadTexture(spriteRun);
+    UnloadTexture(spriteJump);
+}
+
 
 void Player::reset()
 {
@@ -17,14 +33,14 @@ void Player::reset()
 
     size = {100, 100};
 
-    frameCount = 4; // Dein Player-Sprite hat 20 Frames
+    currentAnimState = AnimState::IDLE;
+    frameCount = 1; // Dein Player-Sprite hat 20 Frames
     currentFrame = 0;
     frameTimer = 0.0f;
     frameSpeed = 1.0f / 12.0f; // 12 Bilder pro Sekunde
     facingRight = true;
 
     primaryAbility = std::make_unique<ProjectileAbility>();
-
     hp = base.maxHP;
 }
 
@@ -53,17 +69,6 @@ void Player::usePrimaryAbility(CombatSystem &combatSystem, Vector2 target)
     }
 }
 
-void Player::load()
-{
-    // Wir nehmen den Sprite, der schon in main geladen wurde
-    sprite = loadSprite("assets/sprites/player/player.png", 20);
-}
-
-void Player::unload()
-{
-    UnloadTexture(sprite);
-}
-
 void Player::update(float delta, const std::vector<Rectangle> &platforms)
 {
     if (primaryAbilityCooldownTimer > 0)
@@ -86,14 +91,52 @@ void Player::update(float delta, const std::vector<Rectangle> &platforms)
         isMoving = true;
     }
 
+
     if (IsKeyPressed(KEY_SPACE) && canJump)
     {
         vel.y = JUMP_SPEED;
         canJump = false;
     }
 
-    // 2. Animations-Logik
-    if (isMoving)
+
+    AnimState previousAnimState = currentAnimState;
+
+    // 1. Zustand bestimmen
+    if (!canJump)
+    {
+        currentAnimState = AnimState::JUMPING;
+    }
+    else if (isMoving)
+    {
+        currentAnimState = AnimState::RUNNING;
+    }
+    else
+    {
+        currentAnimState = AnimState::IDLE;
+    }
+
+    // 2. Wenn sich der Zustand geändert hat, Animation zurücksetzen
+    if (currentAnimState != previousAnimState)
+    {
+        currentFrame = 0;
+        frameTimer = 0.0f;
+        switch (currentAnimState)
+        {
+        case AnimState::IDLE:
+            frameCount = 1;
+            break; // 4 Frames im alten Sprite
+        case AnimState::RUNNING:
+            frameCount = 8;
+            break;
+        case AnimState::JUMPING:
+            frameCount = 12;
+            break;
+        }
+    }
+
+    // 3. Animation basierend auf dem aktuellen Zustand updaten
+    // Nur animieren, wenn es nötig ist (mehr als 1 Frame)
+    if (frameCount > 1)
     {
         frameTimer += delta;
         if (frameTimer >= frameSpeed)
@@ -101,10 +144,6 @@ void Player::update(float delta, const std::vector<Rectangle> &platforms)
             frameTimer = 0.0f;
             currentFrame = (currentFrame + 1) % frameCount;
         }
-    }
-    else
-    {
-        currentFrame = 0; // Zurück zum ersten Frame, wenn der Spieler steht
     }
     // --- Bewegung & Kollision anwenden ---
 
@@ -163,20 +202,30 @@ void Player::update(float delta, const std::vector<Rectangle> &platforms)
 void Player::draw() const
 {
     // Frame-Größe (angenommen, jeder Frame ist 100x100 Pixel)
-    float frameWidth = (float)sprite.width / frameCount;
-    float frameHeight = (float)sprite.height;
+    Texture2D currentSprite;
+    switch (currentAnimState) {
+        case AnimState::IDLE:
+            currentSprite = spriteIdle;
+            break;
+        case AnimState::RUNNING:
+            currentSprite = spriteRun;
+            break;
+        case AnimState::JUMPING:
+            currentSprite = spriteJump;
+            break;
+    }
 
-    // Definiere den Ausschnitt (source rectangle)
+    float frameWidth = (float)currentSprite.width / frameCount;
+    float frameHeight = (float)currentSprite.height;
     Rectangle sourceRec = {currentFrame * frameWidth, 0, frameWidth, frameHeight};
 
-    // NEU: Spiegel den Sprite, wenn er nach links schaut
     if (!facingRight)
     {
         sourceRec.width *= -1;
     }
 
     Rectangle destRec = getBounds();
-    DrawTexturePro(sprite, sourceRec, destRec, {0, 0}, 0, WHITE);
+    DrawTexturePro(currentSprite, sourceRec, destRec, {0, 0}, 0, WHITE);
 
     DrawCircleV(getCenter(), 5, RED);
 }
