@@ -201,23 +201,38 @@ void Player::update(float delta, const std::vector<Rectangle> &platforms)
 
 void Player::draw() const
 {
-    // Frame-Größe (angenommen, jeder Frame ist 100x100 Pixel)
     Texture2D currentSprite;
+    int columns = 1;
+    int rows = 1;
+
     switch (currentAnimState) {
         case AnimState::IDLE:
             currentSprite = spriteIdle;
             break;
         case AnimState::RUNNING:
             currentSprite = spriteRun;
+            columns = 3; // 3 Frames pro Zeile
+            rows = 3;    // 3 Zeilen
             break;
         case AnimState::JUMPING:
             currentSprite = spriteJump;
+            columns = 3; // 3 Frames pro Zeile
+            rows = 4;    // 4 Zeilen
             break;
     }
 
-    float frameWidth = (float)currentSprite.width / frameCount;
-    float frameHeight = (float)currentSprite.height;
-    Rectangle sourceRec = {currentFrame * frameWidth, 0, frameWidth, frameHeight};
+    float frameWidth = (float)currentSprite.width / columns;
+    float frameHeight = (float)currentSprite.height / rows;
+
+    int currentRow = currentFrame / columns;
+    int currentCol = currentFrame % columns;
+
+    Rectangle sourceRec = {
+        (float)currentCol * frameWidth,
+        (float)currentRow * frameHeight,
+        frameWidth,
+        frameHeight
+    };
 
     if (!facingRight)
     {
