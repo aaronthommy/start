@@ -1,0 +1,40 @@
+{
+    "level_name": "Grassy Plains",
+    "background_layers": [
+        { "path": "assets/graphics/backgrounds/sky.png", "scroll_speed": 0.1 },
+        { "path": "assets/graphics/backgrounds/high_mountains.png", "scroll_speed": 0.3 },
+        { "path": "assets/graphics/backgrounds/high_trees.png", "scroll_speed": 0.7 }
+    ],
+    "player_start": {
+        "x": 150,
+        "y": 800
+    },
+    "platforms": [
+        { "x": 0, "y": 980, "width": 1920, "height": 100, "texture_id": "grass" },
+        { "x": 400, "y": 850, "width": 250, "height": 40, "texture_id": "stone" }
+    ],
+    "enemies": [
+        {
+            "type": "frog",
+            "x": 600,
+            "y": 600,
+            "width": 100,
+            "height": 100,
+            "speed": 50,
+            "health": 50,
+            "attackDamage": 10,
+            "texturePath": "assets/sprites/enemies/frog-100x100.png"
+        },
+        {
+            "type": "duck",
+            "x": 800,
+            "y": 600,
+            "width": 100,
+            "height": 100,
+            "speed": 70,
+            "health": 40,
+            "attackDamage": 8,
+            "texturePath": "assets/sprites/enemies/duck-100x100.png"
+        }
+    ]
+}
