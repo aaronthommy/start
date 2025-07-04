@@ -23,7 +23,27 @@
         { "x": 1600, "y": 300, "width": 320, "height": 100, "texture_id": "grass" }
     ],
     "enemies": [
-        { "type": "duck", "x": 925, "y": 770 },
-        { "type": "duck", "x": 1650, "y": 250 }
+        {
+            "type": "enemy",
+            "x": 600,
+            "y": 600,
+            "width": 100,
+            "height": 100,
+            "speed": 50,
+            "health": 50,
+            "attackDamage": 10,
+            "texturePath": "assets/sprites/enemies/enemy-100x100.png"
+        },
+        {
+            "type": "duck",
+            "x": 800,
+            "y": 600,
+            "width": 100,
+            "height": 100,
+            "speed": 70,
+            "health": 40,
+            "attackDamage": 8,
+            "texturePath": "assets/sprites/enemies/duck-100x100.png"
+        }
     ]
 }
