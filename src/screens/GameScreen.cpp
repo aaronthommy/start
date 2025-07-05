@@ -191,6 +191,28 @@ void GameScreen::update()
     
     // Update Combat System
     combatSystem.update(GetFrameTime(), platformBounds);
+    
+    // NEU: Entferne tote Enemies
+    size_t enemiesBeforeCleanup = enemies.size();
+    
+    enemies.erase(
+        std::remove_if(enemies.begin(), enemies.end(), 
+            [](const Enemy& enemy) {
+                return enemy.isDead();
+            }),
+        enemies.end()
+    );
+    
+    // Falls Enemies entfernt wurden, aktualisiere auch das CombatSystem
+    if (enemies.size() != enemiesBeforeCleanup) {
+        // Aktualisiere die Enemy-Registrierung im CombatSystem
+        combatSystem.clearEnemies(); // Diese Methode müssen wir noch hinzufügen
+        for (auto& enemy : enemies) {
+            combatSystem.registerEnemy(&enemy);
+        }
+        
+        TraceLog(LOG_INFO, "Tote Enemies entfernt. Verbleibende Enemies: %zu", enemies.size());
+    }
 }
 
 void GameScreen::draw() const
