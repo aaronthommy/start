@@ -22,6 +22,12 @@ struct Platform
     std::string textureId; // Z.B. "grass", "stone", ...
 };
 
+struct HeartDrop {
+    Vector2 position;
+    float lifetime = 10.0f;  // 10 Sekunden bevor es verschwindet
+    bool collected = false;
+};
+
 class GameScreen
 {
 public:
@@ -37,7 +43,15 @@ public:
 
 private:
     void drawHearts() const;
+    void applyScreenShake(float intensity, float duration); 
     float enemyCollisionCooldown = 0.0f;
+
+    float screenShakeTime = 0.0f;
+    float screenShakeIntensity = 0.0f;
+    Vector2 screenShakeOffset = {0, 0};
+
+    std::vector<HeartDrop> heartDrops;
+
     LevelManager *levelMgr = nullptr;
     int currentLevel = -1;
     Player player;

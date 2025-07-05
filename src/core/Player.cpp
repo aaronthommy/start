@@ -71,6 +71,16 @@ void Player::usePrimaryAbility(CombatSystem &combatSystem, Vector2 target)
     }
 }
 
+void Player::takeDamage(float damage) {
+    // Rufe die Basis-Implementation auf
+    Character::takeDamage(damage);
+    
+    // NEU: Setze Blink-Timer bei Schaden
+    if (damage > 0) {  // Nur bei echtem Schaden, nicht bei Heilung
+        damageBlinkTime = 0.5f;  // 0.5 Sekunden blinken
+    }
+}
+
 
 void Player::update(float delta, const std::vector<Rectangle> &platforms)
 {
@@ -208,6 +218,10 @@ void Player::update(float delta, const std::vector<Rectangle> &platforms)
     {
         vel.y = JUMP_SPEED * -2;
     }
+
+     if (damageBlinkTime > 0.0f) {
+        damageBlinkTime -= delta;
+    }
 }
 
 void Player::applyKnockback(Vector2 enemyPosition) {
@@ -253,13 +267,13 @@ void Player::draw() const
             break;
         case AnimState::RUNNING:
             currentSprite = spriteRun;
-            columns = 3; // 3 Frames pro Zeile
-            rows = 3;    // 3 Zeilen
+            columns = 3;
+            rows = 3;
             break;
         case AnimState::JUMPING:
             currentSprite = spriteJump;
-            columns = 3; // 3 Frames pro Zeile
-            rows = 4;    // 4 Zeilen
+            columns = 3;
+            rows = 4;
             break;
     }
 
@@ -282,7 +296,19 @@ void Player::draw() const
     }
 
     Rectangle destRec = getBounds();
-    DrawTexturePro(currentSprite, sourceRec, destRec, {0, 0}, 0, WHITE);
+    
+    // NEU: Damage Blink Effect
+    Color tint = WHITE;
+    if (damageBlinkTime > 0.0f) {
+        // Blinke zwischen rot und weiß
+        float blinkSpeed = 15.0f;  // Wie schnell blinken
+        if (sinf(GetTime() * blinkSpeed) > 0) {
+            tint = {255, 100, 100, 255};  // Rötlicher Tint
+        }
+    }
+    
+    DrawTexturePro(currentSprite, sourceRec, destRec, {0, 0}, 0, tint);
 
     DrawCircleV(getCenter(), 5, RED);
 }
+

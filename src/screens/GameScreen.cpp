@@ -158,7 +158,13 @@ void GameScreen::load(LevelManager *levelManager, int levelIndex)
     }
 }
 
-void GameScreen::update() {
+void GameScreen::applyScreenShake(float intensity, float duration) {
+    screenShakeIntensity = intensity;
+    screenShakeTime = duration;
+}
+
+void GameScreen::update()
+{
     if (IsKeyPressed(KEY_ESCAPE))
     {
         if (onFinish)
@@ -167,6 +173,20 @@ void GameScreen::update() {
     }
 
     float deltaTime = GetFrameTime();
+
+    // === NEU: SCREEN SHAKE UPDATE ===
+    if (screenShakeTime > 0.0f) {
+        screenShakeTime -= deltaTime;
+        
+        // Zufällige Shake-Offsets
+        float intensity = screenShakeIntensity * (screenShakeTime / 0.3f); // Fade-out
+        screenShakeOffset.x = (float)(rand() % 20 - 10) * intensity * 0.1f;
+        screenShakeOffset.y = (float)(rand() % 20 - 10) * intensity * 0.1f;
+        
+        if (screenShakeTime <= 0.0f) {
+            screenShakeOffset = {0, 0};
+        }
+    }
 
     // Erstelle eine temporäre Liste von Rectangles für die Kollisionserkennung
     std::vector<Rectangle> platformBounds;
@@ -185,7 +205,7 @@ void GameScreen::update() {
         enemy.update(deltaTime, platformBounds);
     }
 
-    // NEU: Enemy-Player Kollisionserkennung
+    // === MODIFIZIERTE ENEMY-PLAYER KOLLISION MIT SCREEN SHAKE ===
     if (enemyCollisionCooldown > 0.0f)
     {
         enemyCollisionCooldown -= deltaTime;
@@ -203,34 +223,56 @@ void GameScreen::update() {
 
                 if (CheckCollisionRecs(playerBounds, enemyBounds))
                 {
-                    // Player verliert ein halbes Herz (0.5 Schaden)
                     player.takeDamage(0.5f);
-                    
-                    // NEU: Knockback anwenden
                     player.applyKnockback(enemy.getCenter());
-
-                    // Setze Cooldown auf 1 Sekunde
                     enemyCollisionCooldown = 1.0f;
+                    
+                    // NEU: Screen Shake bei Player-Schaden!
+                    applyScreenShake(10.0f, 0.9f);  // Intensity 3.0, Duration 0.3s
 
                     TraceLog(LOG_INFO, "Player von Enemy berührt! Schaden: 0.5, Player HP: %d",
                              player.getCurrentHP());
 
-                    break; // Nur ein Enemy kann pro Frame Schaden verursachen
+                    break;
                 }
             }
         }
     }
 
-    // ENTFERNE DIESE ZEILEN (doppelter Code):
-    /*
-    if (CheckCollisionRecs(playerBounds, enemyBounds))
-    {
-        player.takeDamage(0.5f);
-        player.applyKnockback(enemy.getCenter()); // NEU: Knockback
-        enemyCollisionCooldown = 1.0f;
-        // ... rest bleibt gleich
+    // === NEU: HEART-DROP UPDATE ===
+    // Update Heart-Drops
+    for (auto& drop : heartDrops) {
+        drop.lifetime -= deltaTime;
+        
+        // Kollision mit Player prüfen
+        if (!drop.collected) {
+            Rectangle dropBounds = {drop.position.x, drop.position.y, 25, 25};
+            Rectangle playerBounds = player.getBounds();
+            
+            if (CheckCollisionRecs(dropBounds, playerBounds)) {
+                // Player sammelt Herz
+                float currentHP = player.getCurrentHP();
+                float maxHP = player.getMaxHP();
+                
+                if (currentHP < maxHP) {  // Nur heilen wenn nicht voll
+                    player.takeDamage(-0.5f);  // Negative damage = Heilung
+                    drop.collected = true;
+                    
+                    TraceLog(LOG_INFO, "Heart-Drop gesammelt! Player HP: %d", 
+                             player.getCurrentHP());
+                }
+            }
+        }
     }
-    */
+    
+    // Entferne abgelaufene oder gesammelte Heart-Drops
+    heartDrops.erase(
+        std::remove_if(heartDrops.begin(), heartDrops.end(),
+            [](const HeartDrop& drop) {
+                return drop.collected || drop.lifetime <= 0.0f;
+            }),
+        heartDrops.end()
+    );
 
     // Handle Player Abilities
     if (IsMouseButtonDown(MOUSE_BUTTON_LEFT))
@@ -242,9 +284,26 @@ void GameScreen::update() {
     // Update Combat System
     combatSystem.update(deltaTime, platformBounds);
 
-    // NEU: Entferne tote Enemies
+    // === MODIFIZIERTE ENEMY-CLEANUP MIT HEART-DROPS ===
     size_t enemiesBeforeCleanup = enemies.size();
-
+    
+    // Prüfe welche Enemies gerade gestorben sind für Heart-Drops
+    for (const auto& enemy : enemies) {
+        if (enemy.isDead()) {
+            // 30% Chance für Heart-Drop
+            if (rand() % 100 < 30) {
+                HeartDrop drop;
+                drop.position = enemy.getCenter();
+                drop.position.x -= 12.5f; // Zentriere das 25x25 Herz
+                drop.position.y -= 12.5f;
+                heartDrops.push_back(drop);
+                
+                TraceLog(LOG_INFO, "Heart-Drop gespawnt bei (%.1f, %.1f)", 
+                         drop.position.x, drop.position.y);
+            }
+        }
+    }
+    
     enemies.erase(
         std::remove_if(enemies.begin(), enemies.end(),
                        [](const Enemy &enemy)
@@ -253,7 +312,6 @@ void GameScreen::update() {
                        }),
         enemies.end());
 
-    // Falls Enemies entfernt wurden, aktualisiere auch das CombatSystem
     if (enemies.size() != enemiesBeforeCleanup)
     {
         combatSystem.clearEnemies();
@@ -270,7 +328,7 @@ void GameScreen::draw() const
 {
     ClearBackground(BLACK);
 
-    // Zeichne Background-Layers (Parallax)
+    // Zeichne Background-Layers (Parallax) - UNVERÄNDERT
     for (const auto &layer : backgroundLayers)
     {
         float scale = (float)VIRTUAL_SCREEN_HEIGHT / (float)layer.texture.height;
@@ -287,9 +345,14 @@ void GameScreen::draw() const
         DrawTexturePro(layer.texture, source, dest2, {0, 0}, 0.0f, WHITE);
     }
 
-    BeginMode2D(camera);
+    // === NEU: KAMERA MIT SCREEN SHAKE ===
+    Camera2D shakeCamera = camera;
+    shakeCamera.offset.x += screenShakeOffset.x;
+    shakeCamera.offset.y += screenShakeOffset.y;
+    
+    BeginMode2D(shakeCamera);  // Verwende shakeCamera statt camera
 
-    // Zeichne Platforms
+    // Zeichne Platforms - UNVERÄNDERT
     for (const auto &platform : platforms)
     {
         if (!platform.textureId.empty() && platformTextures.count(platform.textureId))
@@ -306,21 +369,45 @@ void GameScreen::draw() const
         }
     }
 
-    // Zeichne Player
+    // Zeichne Player - UNVERÄNDERT
     player.draw();
-
-    // Zeichne Enemies
+    
+    // Zeichne Enemies - UNVERÄNDERT
     for (const auto &enemy : enemies)
     {
         enemy.draw();
     }
-
-    // Zeichne Combat System (Projektile, etc.)
+    
+    // === NEU: ZEICHNE HEART-DROPS ===
+    for (const auto& drop : heartDrops) {
+        if (!drop.collected) {
+            // Pulsing-Effekt
+            float pulse = sinf(GetTime() * 8.0f) * 0.1f + 0.9f;
+            float size = 25.0f * pulse;
+            
+            Rectangle destRect = {
+                drop.position.x + (25.0f - size) / 2.0f,
+                drop.position.y + (25.0f - size) / 2.0f,
+                size, size
+            };
+            
+            DrawTextureEx(halfHeartTexture, 
+                         {destRect.x, destRect.y}, 
+                         0.0f, 
+                         size / 100.0f,  // Scale factor (da Textur 100x100 ist)
+                         WHITE);
+                         
+            // DEBUG: Zeichne auch einen kleinen Kreis zur Visualisierung
+            DrawCircle(drop.position.x + 12.5f, drop.position.y + 12.5f, 3, YELLOW);
+        }
+    }
+    
+    // Zeichne Combat System (Projektile, etc.) - UNVERÄNDERT
     combatSystem.draw();
 
     EndMode2D();
 
-    // UI Elements
+    // UI Elements - UNVERÄNDERT
     drawHearts();
 }
 
