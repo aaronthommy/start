@@ -54,7 +54,7 @@ void DrawTextureTiled(Texture2D texture, Rectangle source, Rectangle dest, Vecto
 GameScreen::GameScreen()
 {
     camera = {0};
-    camera.offset = {(float)VIRTUAL_SCREEN_WIDTH / 2, (float)VIRTUAL_SCREEN_HEIGHT / 2 };
+    camera.offset = {(float)VIRTUAL_SCREEN_WIDTH / 2, (float)VIRTUAL_SCREEN_HEIGHT / 2};
     camera.rotation = 0.0f;
     camera.zoom = 1.0f;
 }
@@ -121,7 +121,8 @@ void GameScreen::load(LevelManager *levelManager, int levelIndex)
 
     // NEU: Lade Enemies
     enemies.clear();
-    if (data.contains("enemies")) {
+    if (data.contains("enemies"))
+    {
         for (const auto &eData : data["enemies"])
         {
             // Standard-Werte falls nicht angegeben - explizite Konvertierung zu float
@@ -130,40 +131,42 @@ void GameScreen::load(LevelManager *levelManager, int levelIndex)
             float speed = eData.contains("speed") ? (float)eData["speed"] : 50.0f;
             float health = eData.contains("health") ? (float)eData["health"] : 50.0f;
             float attackDamage = eData.contains("attackDamage") ? (float)eData["attackDamage"] : 10.0f;
-            
+
             std::string texturePath = "";
-            if (eData.contains("texturePath")) {
+            if (eData.contains("texturePath"))
+            {
                 texturePath = eData["texturePath"];
             }
-            
+
             std::string enemyType = eData.contains("type") ? eData["type"] : "default";
-            
+
             // Erstelle Enemy mit allen Parametern
-            Enemy enemy(enemyType, 
-                       eData["x"], eData["y"], 
-                       width, height,
-                       speed, health, attackDamage,
-                       texturePath);
-            
+            Enemy enemy(enemyType,
+                        eData["x"], eData["y"],
+                        width, height,
+                        speed, health, attackDamage,
+                        texturePath);
+
             enemies.push_back(enemy);
-            
+
             // Registriere Enemy beim CombatSystem
             combatSystem.registerEnemy(&enemies.back());
-            
-            TraceLog(LOG_INFO, "Enemy geladen: %s at (%.1f, %.1f)", 
+
+            TraceLog(LOG_INFO, "Enemy geladen: %s at (%.1f, %.1f)",
                      enemyType.c_str(), (float)eData["x"], (float)eData["y"]);
         }
     }
 }
 
-void GameScreen::update()
-{
+void GameScreen::update() {
     if (IsKeyPressed(KEY_ESCAPE))
     {
         if (onFinish)
             onFinish();
         return;
     }
+
+    float deltaTime = GetFrameTime();
 
     // Erstelle eine temporäre Liste von Rectangles für die Kollisionserkennung
     std::vector<Rectangle> platformBounds;
@@ -173,14 +176,61 @@ void GameScreen::update()
     }
 
     // Update Player
-    player.update(GetFrameTime(), platformBounds);
+    player.update(deltaTime, platformBounds);
     camera.target = player.getPosition();
 
     // Update Enemies
     for (auto &enemy : enemies)
     {
-        enemy.update(GetFrameTime(), platformBounds);
+        enemy.update(deltaTime, platformBounds);
     }
+
+    // NEU: Enemy-Player Kollisionserkennung
+    if (enemyCollisionCooldown > 0.0f)
+    {
+        enemyCollisionCooldown -= deltaTime;
+    }
+
+    if (enemyCollisionCooldown <= 0.0f)
+    {
+        Rectangle playerBounds = player.getBounds();
+
+        for (const auto &enemy : enemies)
+        {
+            if (!enemy.isDead())
+            {
+                Rectangle enemyBounds = enemy.getBounds();
+
+                if (CheckCollisionRecs(playerBounds, enemyBounds))
+                {
+                    // Player verliert ein halbes Herz (0.5 Schaden)
+                    player.takeDamage(0.5f);
+                    
+                    // NEU: Knockback anwenden
+                    player.applyKnockback(enemy.getCenter());
+
+                    // Setze Cooldown auf 1 Sekunde
+                    enemyCollisionCooldown = 1.0f;
+
+                    TraceLog(LOG_INFO, "Player von Enemy berührt! Schaden: 0.5, Player HP: %d",
+                             player.getCurrentHP());
+
+                    break; // Nur ein Enemy kann pro Frame Schaden verursachen
+                }
+            }
+        }
+    }
+
+    // ENTFERNE DIESE ZEILEN (doppelter Code):
+    /*
+    if (CheckCollisionRecs(playerBounds, enemyBounds))
+    {
+        player.takeDamage(0.5f);
+        player.applyKnockback(enemy.getCenter()); // NEU: Knockback
+        enemyCollisionCooldown = 1.0f;
+        // ... rest bleibt gleich
+    }
+    */
 
     // Handle Player Abilities
     if (IsMouseButtonDown(MOUSE_BUTTON_LEFT))
@@ -188,29 +238,30 @@ void GameScreen::update()
         Vector2 mouseTarget = GetScreenToWorld2D(GetMousePosition(), camera);
         player.usePrimaryAbility(combatSystem, mouseTarget);
     }
-    
+
     // Update Combat System
-    combatSystem.update(GetFrameTime(), platformBounds);
-    
+    combatSystem.update(deltaTime, platformBounds);
+
     // NEU: Entferne tote Enemies
     size_t enemiesBeforeCleanup = enemies.size();
-    
+
     enemies.erase(
-        std::remove_if(enemies.begin(), enemies.end(), 
-            [](const Enemy& enemy) {
-                return enemy.isDead();
-            }),
-        enemies.end()
-    );
-    
+        std::remove_if(enemies.begin(), enemies.end(),
+                       [](const Enemy &enemy)
+                       {
+                           return enemy.isDead();
+                       }),
+        enemies.end());
+
     // Falls Enemies entfernt wurden, aktualisiere auch das CombatSystem
-    if (enemies.size() != enemiesBeforeCleanup) {
-        // Aktualisiere die Enemy-Registrierung im CombatSystem
-        combatSystem.clearEnemies(); // Diese Methode müssen wir noch hinzufügen
-        for (auto& enemy : enemies) {
+    if (enemies.size() != enemiesBeforeCleanup)
+    {
+        combatSystem.clearEnemies();
+        for (auto &enemy : enemies)
+        {
             combatSystem.registerEnemy(&enemy);
         }
-        
+
         TraceLog(LOG_INFO, "Tote Enemies entfernt. Verbleibende Enemies: %zu", enemies.size());
     }
 }
@@ -257,13 +308,13 @@ void GameScreen::draw() const
 
     // Zeichne Player
     player.draw();
-    
+
     // Zeichne Enemies
     for (const auto &enemy : enemies)
     {
         enemy.draw();
     }
-    
+
     // Zeichne Combat System (Projektile, etc.)
     combatSystem.draw();
 
@@ -277,7 +328,7 @@ void GameScreen::unload()
 {
     player.unload();
     Projectile::unloadTexture();
-    
+
     // Entlade Background-Texturen
     for (auto &layer : backgroundLayers)
     {

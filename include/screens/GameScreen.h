@@ -37,6 +37,7 @@ public:
 
 private:
     void drawHearts() const;
+    float enemyCollisionCooldown = 0.0f;
     LevelManager *levelMgr = nullptr;
     int currentLevel = -1;
     Player player;

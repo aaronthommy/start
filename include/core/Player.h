@@ -20,6 +20,7 @@ public:
     Player();
     void load();
     void unload();
+    void applyKnockback(Vector2 enemyPosition);
     void update(float delta, const std::vector<Rectangle> &platforms);
     void draw() const;
     void reset();
@@ -31,6 +32,9 @@ private:
     Texture2D spriteIdle;
     Texture2D spriteRun;
     Texture2D spriteJump;
+
+    float knockbackTime = 0.0f;        
+    const float KNOCKBACK_DURATION = 0.3f; 
 
     AnimState currentAnimState; 
 

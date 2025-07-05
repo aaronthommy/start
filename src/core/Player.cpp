@@ -3,6 +3,8 @@
 #include "core/abilities/ProjectileAbility.h" // <- Die konkrete Fähigkeit einbinden
 #include "core/CombatSystem.h"
 #include "config.h" // <-- WICHTIG: Einbinden, um die virtuellen Dimensionen zu kennen
+#include "raymath.h"      // NEU: Für Vector2Subtract
+#include <cmath> 
 
 Player::Player() : Character(Texture2D{}, Vector2{}) // Rufe den Character-Konstruktor mit leeren Werten auf
 {
@@ -69,44 +71,58 @@ void Player::usePrimaryAbility(CombatSystem &combatSystem, Vector2 target)
     }
 }
 
+
 void Player::update(float delta, const std::vector<Rectangle> &platforms)
 {
+    // === COOLDOWN-TIMER ===
     if (primaryAbilityCooldownTimer > 0)
     {
         primaryAbilityCooldownTimer -= delta;
     }
-    // --- Eingabe verarbeiten ---
-    vel.x = 0;
-    bool isMoving = false;
-    if (IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT))
-    {
-        vel.x = -MOVE_SPEED;
-        facingRight = false; // Schaut nach links
-        isMoving = true;
+    
+    // === KNOCKBACK-TIMER ===
+    bool inKnockback = (knockbackTime > 0.0f);
+    if (inKnockback) {
+        knockbackTime -= delta;
+        TraceLog(LOG_DEBUG, "Knockback aktiv: %.3f Sekunden verbleibend", knockbackTime);
     }
-    if (IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT))
-    {
-        vel.x = MOVE_SPEED;
-        facingRight = true; // Schaut nach rechts
-        isMoving = true;
+    
+    // === EINGABE VERARBEITEN (nur wenn nicht im Knockback) ===
+    if (!inKnockback) {
+        vel.x = 0;  // Nur überschreiben wenn kein Knockback aktiv
+        bool isMoving = false;
+        
+        if (IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT))
+        {
+            vel.x = -MOVE_SPEED;
+            facingRight = false;
+            isMoving = true;
+        }
+        if (IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT))
+        {
+            vel.x = MOVE_SPEED;
+            facingRight = true;
+            isMoving = true;
+        }
+
+        if (IsKeyPressed(KEY_SPACE) && canJump)
+        {
+            vel.y = JUMP_SPEED;
+            canJump = false;
+        }
+    } else {
+        // Während Knockback: Reduziere die Knockback-Geschwindigkeit langsam
+        vel.x *= 0.95f;  // Damping für natürlicheren Effekt
     }
 
-
-    if (IsKeyPressed(KEY_SPACE) && canJump)
-    {
-        vel.y = JUMP_SPEED;
-        canJump = false;
-    }
-
-
+    // === ANIMATIONS-LOGIK (unverändert) ===
     AnimState previousAnimState = currentAnimState;
 
-    // 1. Zustand bestimmen
     if (!canJump)
     {
         currentAnimState = AnimState::JUMPING;
     }
-    else if (isMoving)
+    else if (abs(vel.x) > 10.0f)  // Bewegung auch während Knockback berücksichtigen
     {
         currentAnimState = AnimState::RUNNING;
     }
@@ -115,7 +131,6 @@ void Player::update(float delta, const std::vector<Rectangle> &platforms)
         currentAnimState = AnimState::IDLE;
     }
 
-    // 2. Wenn sich der Zustand geändert hat, Animation zurücksetzen
     if (currentAnimState != previousAnimState)
     {
         currentFrame = 0;
@@ -124,7 +139,7 @@ void Player::update(float delta, const std::vector<Rectangle> &platforms)
         {
         case AnimState::IDLE:
             frameCount = 1;
-            break; // 4 Frames im alten Sprite
+            break;
         case AnimState::RUNNING:
             frameCount = 8;
             break;
@@ -134,8 +149,6 @@ void Player::update(float delta, const std::vector<Rectangle> &platforms)
         }
     }
 
-    // 3. Animation basierend auf dem aktuellen Zustand updaten
-    // Nur animieren, wenn es nötig ist (mehr als 1 Frame)
     if (frameCount > 1)
     {
         frameTimer += delta;
@@ -145,8 +158,8 @@ void Player::update(float delta, const std::vector<Rectangle> &platforms)
             currentFrame = (currentFrame + 1) % frameCount;
         }
     }
-    // --- Bewegung & Kollision anwenden ---
 
+    // === BEWEGUNG & KOLLISION (unverändert) ===
     // 1. Horizontale Bewegung
     pos.x += vel.x * delta;
     Rectangle playerBounds = getBounds();
@@ -154,13 +167,12 @@ void Player::update(float delta, const std::vector<Rectangle> &platforms)
     {
         if (CheckCollisionRecs(playerBounds, platform))
         {
-            // Bei Kollision, bewege Spieler aus der Plattform heraus
             if (vel.x > 0)
-            { // Bewegt sich nach rechts
+            {
                 pos.x = platform.x - playerBounds.width;
             }
             else if (vel.x < 0)
-            { // Bewegt sich nach links
+            {
                 pos.x = platform.x + platform.width;
             }
         }
@@ -168,35 +180,65 @@ void Player::update(float delta, const std::vector<Rectangle> &platforms)
 
     // 2. Vertikale Bewegung
     pos.y += vel.y * delta;
-    playerBounds = getBounds(); // Position aktualisieren
-    canJump = false;            // Zurücksetzen, Landung wird weiter unten geprüft
+    playerBounds = getBounds();
+    canJump = false;
 
     for (const auto &platform : platforms)
     {
         if (CheckCollisionRecs(playerBounds, platform))
         {
             if (vel.y > 0)
-            {                                             // Fällt nach unten
-                pos.y = platform.y - playerBounds.height; // Auf Plattform landen
+            {
+                pos.y = platform.y - playerBounds.height;
                 vel.y = 0;
-                canJump = true; // Kann wieder springen
+                canJump = true;
             }
             else if (vel.y < 0)
-            {                                         // Springt nach oben
-                pos.y = platform.y + platform.height; // An Unterseite stoppen
+            {
+                pos.y = platform.y + platform.height;
                 vel.y = 0;
             }
         }
     }
 
-    // 3. Gravitation anwenden (wenn nicht auf einer Plattform)
+    // 3. Gravitation (immer anwenden)
     vel.y += GRAVITY * delta;
 
-    // Optional: Verhindere, dass die Gravitation zu extrem wird
     if (vel.y > JUMP_SPEED * -2)
     {
         vel.y = JUMP_SPEED * -2;
     }
+}
+
+void Player::applyKnockback(Vector2 enemyPosition) {
+    // Berechne die Positionen
+    Vector2 playerCenter = {pos.x + size.x / 2.0f, pos.y + size.y / 2.0f};
+    
+    // === HORIZONTALER KNOCKBACK ===
+    float horizontalDirection = playerCenter.x - enemyPosition.x;
+    
+    // Normalisiere die horizontale Richtung
+    if (horizontalDirection > 0) {
+        horizontalDirection = 1.0f;  // Player ist rechts vom Enemy -> nach rechts stoßen
+    } else if (horizontalDirection < 0) {
+        horizontalDirection = -1.0f; // Player ist links vom Enemy -> nach links stoßen
+    } else {
+        // Fallback: Zufällige Richtung
+        horizontalDirection = (rand() % 2 == 0) ? 1.0f : -1.0f;
+    }
+    
+    // === SETZE KNOCKBACK-GESCHWINDIGKEIT ===
+    float horizontalForce = 250.0f;
+    float verticalForce = -300.0f;  // Stärker nach oben
+    
+    vel.x = horizontalDirection * horizontalForce;
+    vel.y = verticalForce;
+    
+    // === AKTIVIERE KNOCKBACK-ZUSTAND ===
+    knockbackTime = KNOCKBACK_DURATION;  // 0.3 Sekunden Knockback
+    
+    TraceLog(LOG_INFO, "Knockback aktiviert! H=%.1f, V=%.1f, Dauer=%.2f", 
+             vel.x, vel.y, knockbackTime);
 }
 
 void Player::draw() const
