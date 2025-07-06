@@ -44,7 +44,12 @@ public:
 private:
     void drawHearts() const;
     void applyScreenShake(float intensity, float duration); 
+    void restartLevel(); 
     float enemyCollisionCooldown = 0.0f;
+
+    bool playerDead = false;
+    float deathTimer = 0.0f;
+    const float DEATH_DELAY = 1.5f; 
 
     float screenShakeTime = 0.0f;
     float screenShakeIntensity = 0.0f;

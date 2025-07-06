@@ -159,6 +159,7 @@ void GameScreen::load(LevelManager *levelManager, int levelIndex)
     }
 }
 
+
 void GameScreen::applyScreenShake(float intensity, float duration) {
     screenShakeIntensity = intensity;
     screenShakeTime = duration;
@@ -175,12 +176,38 @@ void GameScreen::update()
 
     float deltaTime = GetFrameTime();
 
-    // === NEU: SCREEN SHAKE UPDATE ===
+     // === NEU: PLAYER DEATH CHECK ===
+    if (!playerDead && player.getCurrentHP() <= 0.0f) {
+        // Player ist gestorben
+        playerDead = true;
+        deathTimer = DEATH_DELAY;
+        
+        // Dramatic Screen Shake beim Tod
+        applyScreenShake(8.0f, 1.0f);
+        
+        TraceLog(LOG_INFO, "Player gestorben! Level wird in %.1f Sekunden neu gestartet.", DEATH_DELAY);
+    }
+    
+    // === DEATH TIMER & RESTART ===
+    if (playerDead) {
+        deathTimer -= deltaTime;
+        
+        if (deathTimer <= 0.0f) {
+            // Level neu starten
+            restartLevel();
+            return;  // Wichtig: Verhindere weitere Updates in diesem Frame
+        }
+        
+        // Während Death Timer läuft, normale Updates pausieren
+        return;
+    }
+
+    // === NORMALE GAME UPDATES (nur wenn Player lebt) ===
+    // Screen Shake Update
     if (screenShakeTime > 0.0f) {
         screenShakeTime -= deltaTime;
         
-        // Zufällige Shake-Offsets
-        float intensity = screenShakeIntensity * (screenShakeTime / 0.3f); // Fade-out
+        float intensity = screenShakeIntensity * (screenShakeTime / 0.3f);
         screenShakeOffset.x = (float)(rand() % 20 - 10) * intensity * 0.1f;
         screenShakeOffset.y = (float)(rand() % 20 - 10) * intensity * 0.1f;
         
@@ -188,7 +215,6 @@ void GameScreen::update()
             screenShakeOffset = {0, 0};
         }
     }
-
     // Erstelle eine temporäre Liste von Rectangles für die Kollisionserkennung
     std::vector<Rectangle> platformBounds;
     for (const auto &p : platforms)
@@ -410,6 +436,28 @@ void GameScreen::draw() const
 
     // UI Elements - UNVERÄNDERT
     drawHearts();
+
+    if (playerDead) {
+        // Dunkler Overlay
+        DrawRectangle(0, 0, VIRTUAL_SCREEN_WIDTH, VIRTUAL_SCREEN_HEIGHT, 
+                     {0, 0, 0, 150});  // Halbtransparentes Schwarz
+        
+        // Death Message
+        const char* deathText = "You Died!";
+        int textWidth = MeasureText(deathText, 60);
+        int x = (VIRTUAL_SCREEN_WIDTH - textWidth) / 2;
+        int y = VIRTUAL_SCREEN_HEIGHT / 2 - 60;
+        
+        DrawText(deathText, x, y, 60, RED);
+        
+        // Restart Timer
+        const char* restartText = TextFormat("Restarting in %.1f...", deathTimer);
+        int restartWidth = MeasureText(restartText, 30);
+        int restartX = (VIRTUAL_SCREEN_WIDTH - restartWidth) / 2;
+        int restartY = y + 80;
+        
+        DrawText(restartText, restartX, restartY, 30, WHITE);
+    }
 }
 
 void GameScreen::unload()
@@ -472,4 +520,33 @@ void GameScreen::drawHearts() const
     
     // DEBUG: Zeige exakte HP-Werte
     DrawText(TextFormat("HP: %.1f/%.1f", currentHp, maxHp), 20, 60, 20, WHITE);
+}
+
+void GameScreen::restartLevel() {
+    TraceLog(LOG_INFO, "Level wird neu gestartet...");
+    
+    // Reset Player
+    player.reset();
+    player.setPosition({100, 100});  // Oder aus level JSON laden
+    
+    // Reset Game State
+    playerDead = false;
+    deathTimer = 0.0f;
+    enemyCollisionCooldown = 0.0f;
+    
+    // Reset Screen Shake
+    screenShakeTime = 0.0f;
+    screenShakeIntensity = 0.0f;
+    screenShakeOffset = {0, 0};
+    
+    // Clear Heart-Drops
+    heartDrops.clear();
+    
+    // Reset Camera
+    camera.target = player.getPosition();
+    
+    // Enemies müssen wir neu laden - am einfachsten das ganze Level neu laden
+    if (levelMgr && currentLevel >= 0) {
+        load(levelMgr, currentLevel);
+    }
 }
