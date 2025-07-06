@@ -36,14 +36,24 @@ void Player::reset()
     size = {100, 100};
 
     currentAnimState = AnimState::IDLE;
-    frameCount = 1; // Dein Player-Sprite hat 20 Frames
+    frameCount = 1;
     currentFrame = 0;
     frameTimer = 0.0f;
-    frameSpeed = 1.0f / 12.0f; // 12 Bilder pro Sekunde
+    frameSpeed = 1.0f / 12.0f;
     facingRight = true;
 
     primaryAbility = std::make_unique<ProjectileAbility>();
-    hp = base.maxHP;
+    
+    // NEU: Explizite Health-Initialisierung
+    base.maxHP = 3;  // Stelle sicher, dass maxHP gesetzt ist
+    hp = base.maxHP; // Reset zu voller Gesundheit
+    
+    // NEU: Reset auch andere Health-bezogene Variablen
+    invTime = 0.0f;
+    damageBlinkTime = 0.0f;
+    knockbackTime = 0.0f;
+    
+    TraceLog(LOG_INFO, "Player reset: HP = %.1f/%.1f", hp, (float)base.maxHP);
 }
 
 Vector2 Player::getPosition() const
@@ -81,7 +91,6 @@ void Player::takeDamage(float damage) {
     }
 }
 
-
 void Player::update(float delta, const std::vector<Rectangle> &platforms)
 {
     // === COOLDOWN-TIMER ===
@@ -95,6 +104,17 @@ void Player::update(float delta, const std::vector<Rectangle> &platforms)
     if (inKnockback) {
         knockbackTime -= delta;
         TraceLog(LOG_DEBUG, "Knockback aktiv: %.3f Sekunden verbleibend", knockbackTime);
+    }
+    
+    // === NEU: INVULNERABILITY TIMER REDUZIEREN ===
+    if (invTime > 0.0f) {
+        invTime -= delta;
+        TraceLog(LOG_DEBUG, "Unverwundbarkeit: %.3f Sekunden verbleibend", invTime);
+    }
+    
+    // === DAMAGE BLINK TIMER REDUZIEREN ===
+    if (damageBlinkTime > 0.0f) {
+        damageBlinkTime -= delta;
     }
     
     // === EINGABE VERARBEITEN (nur wenn nicht im Knockback) ===
@@ -217,10 +237,6 @@ void Player::update(float delta, const std::vector<Rectangle> &platforms)
     if (vel.y > JUMP_SPEED * -2)
     {
         vel.y = JUMP_SPEED * -2;
-    }
-
-     if (damageBlinkTime > 0.0f) {
-        damageBlinkTime -= delta;
     }
 }
 

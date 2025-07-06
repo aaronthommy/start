@@ -88,6 +88,7 @@ void GameScreen::load(LevelManager *levelManager, int levelIndex)
 
     // Lade Player
     player.load();
+    player.reset();
     Projectile::loadTexture();
 
     heartTexture = LoadTexture("assets/ui/hearts/heart100x100.png");
@@ -228,7 +229,7 @@ void GameScreen::update()
                     enemyCollisionCooldown = 1.0f;
                     
                     // NEU: Screen Shake bei Player-Schaden!
-                    applyScreenShake(10.0f, 0.9f);  // Intensity 3.0, Duration 0.3s
+                    applyScreenShake(1.0f, 0.9f);  // Intensity 3.0, Duration 0.3s
 
                     TraceLog(LOG_INFO, "Player von Enemy berührt! Schaden: 0.5, Player HP: %d",
                              player.getCurrentHP());
@@ -439,26 +440,36 @@ void GameScreen::unload()
     UnloadTexture(emptyHeartTexture);
 }
 
-// Bestehende drawHearts() Methode bleibt gleich
 void GameScreen::drawHearts() const
 {
-    int maxHp = player.getMaxHP();
-    int currentHp = player.getCurrentHP();
+    float maxHp = player.getMaxHP();  // Verwende float statt int
+    float currentHp = player.getCurrentHP();  // Verwende float statt int
+    
     float heartSize = 30.0f;
     float padding = 10.0f;
 
-    for (int i = 0; i < maxHp; ++i)
+    // Zeichne Herzen basierend auf halben Herzen (0.5 Schritte)
+    int fullHearts = (int)maxHp;  // Anzahl der vollen Herzen zum Zeichnen
+    
+    for (int i = 0; i < fullHearts; ++i)
     {
         float x = 20.0f + i * (heartSize + padding);
         float y = 20.0f;
-
-        if (i < currentHp)
-        {
+        
+        float heartValue = (float)i + 1.0f;  // Das i-te Herz repräsentiert HP von i+1
+        
+        if (currentHp >= heartValue) {
+            // Volles Herz
             DrawTextureEx(heartTexture, {x, y}, 0.0f, heartSize / 100.0f, WHITE);
-        }
-        else
-        {
+        } else if (currentHp >= heartValue - 0.5f) {
+            // Halbes Herz
+            DrawTextureEx(halfHeartTexture, {x, y}, 0.0f, heartSize / 100.0f, WHITE);
+        } else {
+            // Leeres Herz
             DrawTextureEx(emptyHeartTexture, {x, y}, 0.0f, heartSize / 100.0f, WHITE);
         }
     }
+    
+    // DEBUG: Zeige exakte HP-Werte
+    DrawText(TextFormat("HP: %.1f/%.1f", currentHp, maxHp), 20, 60, 20, WHITE);
 }

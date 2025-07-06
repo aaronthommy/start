@@ -31,8 +31,8 @@ public:
     Vector2 position() const   { return pos; }
     Vector2 size;
 
-    int getCurrentHP() const { return hp; }
-    int getMaxHP() const { return base.maxHP; }
+    float getCurrentHP() const { return hp; }
+    float getMaxHP() const { return base.maxHP; }
 
     Vector2 getCenter() const {
         return { pos.x + size.x / 2.0f, pos.y + size.y / 2.0f };
