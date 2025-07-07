@@ -60,4 +60,7 @@ void Projectile::draw() const {
         Rectangle destRec = { position.x - size.x / 2, position.y - size.y / 2, size.x, size.y };
         DrawTexturePro(spriteSheet, sourceRec, destRec, {0, 0}, 0, WHITE);
     }
+
+    Rectangle bounds = getBounds();
+    DrawRectangleLines(bounds.x, bounds.y, bounds.width, bounds.height, GREEN);
 }

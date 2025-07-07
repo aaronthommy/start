@@ -90,11 +90,13 @@ void Enemy::draw() const
                      healthPercentage * healthBarWidth, healthBarHeight, GREEN);
     }
     
-    // Debug-Info (optional)
-    #ifdef DEBUG
+  
     DrawText(TextFormat("%s\nHP: %.0f/%.0f", enemyType.c_str(), hp, base.maxHP), 
              pos.x, pos.y - 30, 10, WHITE);
-    #endif
+
+    Rectangle bounds = getBounds();
+    DrawRectangleLines(bounds.x, bounds.y, bounds.width, bounds.height, GREEN);
+
 }
 
 void Enemy::takeDamage(float damage) 
