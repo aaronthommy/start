@@ -326,7 +326,7 @@ void Player::draw() const
     DrawTexturePro(currentSprite, sourceRec, destRec, {0, 0}, 0, tint);
 
     Rectangle bounds = getBounds();
-    DrawRectangleLines(bounds.x +20, bounds.y + 20, bounds.width -20 , bounds.height -20, GREEN);
+    DrawRectangleLines(bounds.x + 16, bounds.y + 16, bounds.width -42 , bounds.height - 14, GREEN);
 
     DrawCircleV(getCenter(), 5, RED);
 }

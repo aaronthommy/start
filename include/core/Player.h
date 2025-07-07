@@ -30,6 +30,15 @@ public:
     void usePrimaryAbility(CombatSystem &combatSystem, Vector2 target);
     Vector2 getPosition() const;
 
+    Rectangle getCollisionBounds() const {
+        return { 
+            pos.x ,        // Deine gefundenen Werte
+            pos.y , 
+            size.x - 42,       // 58 Pixel breit
+            size.y - 14        // 86 Pixel hoch
+        };
+    }
+
 private:
     Texture2D spriteIdle;
     Texture2D spriteRun;
