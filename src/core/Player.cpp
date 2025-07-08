@@ -2,9 +2,9 @@
 #include "SpriteUtils.h"
 #include "core/abilities/ProjectileAbility.h" // <- Die konkrete Fähigkeit einbinden
 #include "core/CombatSystem.h"
-#include "config.h" // <-- WICHTIG: Einbinden, um die virtuellen Dimensionen zu kennen
-#include "raymath.h"      // NEU: Für Vector2Subtract
-#include <cmath> 
+#include "config.h"  // <-- WICHTIG: Einbinden, um die virtuellen Dimensionen zu kennen
+#include "raymath.h" // NEU: Für Vector2Subtract
+#include <cmath>
 
 Player::Player() : Character(Texture2D{}, Vector2{}) // Rufe den Character-Konstruktor mit leeren Werten auf
 {
@@ -26,7 +26,6 @@ void Player::unload()
     UnloadTexture(spriteJump);
 }
 
-
 void Player::reset()
 {
     pos = {100, 100}; // Startposition
@@ -43,16 +42,16 @@ void Player::reset()
     facingRight = true;
 
     primaryAbility = std::make_unique<ProjectileAbility>();
-    
+
     // NEU: Explizite Health-Initialisierung
     base.maxHP = 3;  // Stelle sicher, dass maxHP gesetzt ist
     hp = base.maxHP; // Reset zu voller Gesundheit
-    
+
     // NEU: Reset auch andere Health-bezogene Variablen
     invTime = 0.0f;
     damageBlinkTime = 0.0f;
     knockbackTime = 0.0f;
-    
+
     TraceLog(LOG_INFO, "Player reset: HP = %.1f/%.1f", hp, (float)base.maxHP);
 }
 
@@ -81,13 +80,15 @@ void Player::usePrimaryAbility(CombatSystem &combatSystem, Vector2 target)
     }
 }
 
-void Player::takeDamage(float damage) {
+void Player::takeDamage(float damage)
+{
     // Rufe die Basis-Implementation auf
     Character::takeDamage(damage);
-    
+
     // NEU: Setze Blink-Timer bei Schaden
-    if (damage > 0) {  // Nur bei echtem Schaden, nicht bei Heilung
-        damageBlinkTime = 0.5f;  // 0.5 Sekunden blinken
+    if (damage > 0)
+    {                           // Nur bei echtem Schaden, nicht bei Heilung
+        damageBlinkTime = 0.5f; // 0.5 Sekunden blinken
     }
 }
 
@@ -98,30 +99,34 @@ void Player::update(float delta, const std::vector<Rectangle> &platforms)
     {
         primaryAbilityCooldownTimer -= delta;
     }
-    
+
     // === KNOCKBACK-TIMER ===
     bool inKnockback = (knockbackTime > 0.0f);
-    if (inKnockback) {
+    if (inKnockback)
+    {
         knockbackTime -= delta;
         TraceLog(LOG_DEBUG, "Knockback aktiv: %.3f Sekunden verbleibend", knockbackTime);
     }
-    
+
     // === NEU: INVULNERABILITY TIMER REDUZIEREN ===
-    if (invTime > 0.0f) {
+    if (invTime > 0.0f)
+    {
         invTime -= delta;
         TraceLog(LOG_DEBUG, "Unverwundbarkeit: %.3f Sekunden verbleibend", invTime);
     }
-    
+
     // === DAMAGE BLINK TIMER REDUZIEREN ===
-    if (damageBlinkTime > 0.0f) {
+    if (damageBlinkTime > 0.0f)
+    {
         damageBlinkTime -= delta;
     }
-    
+
     // === EINGABE VERARBEITEN (nur wenn nicht im Knockback) ===
-    if (!inKnockback) {
-        vel.x = 0;  // Nur überschreiben wenn kein Knockback aktiv
+    if (!inKnockback)
+    {
+        vel.x = 0; // Nur überschreiben wenn kein Knockback aktiv
         bool isMoving = false;
-        
+
         if (IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT))
         {
             vel.x = -MOVE_SPEED;
@@ -140,9 +145,11 @@ void Player::update(float delta, const std::vector<Rectangle> &platforms)
             vel.y = JUMP_SPEED;
             canJump = false;
         }
-    } else {
+    }
+    else
+    {
         // Während Knockback: Reduziere die Knockback-Geschwindigkeit langsam
-        vel.x *= 0.95f;  // Damping für natürlicheren Effekt
+        vel.x *= 0.95f; // Damping für natürlicheren Effekt
     }
 
     // === ANIMATIONS-LOGIK (unverändert) ===
@@ -152,7 +159,7 @@ void Player::update(float delta, const std::vector<Rectangle> &platforms)
     {
         currentAnimState = AnimState::JUMPING;
     }
-    else if (abs(vel.x) > 10.0f)  // Bewegung auch während Knockback berücksichtigen
+    else if (abs(vel.x) > 10.0f) // Bewegung auch während Knockback berücksichtigen
     {
         currentAnimState = AnimState::RUNNING;
     }
@@ -189,43 +196,70 @@ void Player::update(float delta, const std::vector<Rectangle> &platforms)
         }
     }
 
-    // === BEWEGUNG & KOLLISION (unverändert) ===
+    const float collisionOffsetX = 16.0f;
+    const float collisionOffsetY = 20.0f; // Negativ, da die Box HÖHER beginnt als pos.y
+
+    // === BEWEGUNG & KOLLISION ===
     // 1. Horizontale Bewegung
     pos.x += vel.x * delta;
-    Rectangle playerBounds = getBounds();
+    Rectangle playerCollisionBounds = getCollisionBounds();
     for (const auto &platform : platforms)
     {
-        if (CheckCollisionRecs(playerBounds, platform))
+        if (CheckCollisionRecs(playerCollisionBounds, platform))
         {
             if (vel.x > 0)
             {
-                pos.x = platform.x - playerBounds.width;
+                // Spieler bewegt sich nach rechts und trifft Plattform
+                // Die neue pos.x muss so sein, dass die RECHTE Seite der Kollisionsbox
+                // an der LINKEN Seite der Plattform anliegt.
+                // Rechte Seite der Kollisionsbox: (pos.x + collisionOffsetX + playerCollisionBounds.width)
+                // Gewünscht: pos.x + collisionOffsetX + playerCollisionBounds.width = platform.x
+                // Daraus folgt: pos.x = platform.x - playerCollisionBounds.width - collisionOffsetX
+                pos.x = platform.x - playerCollisionBounds.width - collisionOffsetX;
             }
             else if (vel.x < 0)
             {
-                pos.x = platform.x + platform.width;
+                // Spieler bewegt sich nach links und trifft Plattform
+                // Die neue pos.x muss so sein, dass die LINKE Seite der Kollisionsbox
+                // an der RECHTEN Seite der Plattform anliegt.
+                // Linke Seite der Kollisionsbox: (pos.x + collisionOffsetX)
+                // Gewünscht: pos.x + collisionOffsetX = platform.x + platform.width
+                // Daraus folgt: pos.x = platform.x + platform.width - collisionOffsetX
+                pos.x = platform.x + platform.width - collisionOffsetX;
             }
         }
     }
 
     // 2. Vertikale Bewegung
     pos.y += vel.y * delta;
-    playerBounds = getBounds();
+    playerCollisionBounds = getCollisionBounds(); // Aktualisiere bounds nach horizontaler Verschiebung
     canJump = false;
 
     for (const auto &platform : platforms)
     {
-        if (CheckCollisionRecs(playerBounds, platform))
+        if (CheckCollisionRecs(playerCollisionBounds, platform))
         {
             if (vel.y > 0)
             {
-                pos.y = platform.y - playerBounds.height;
+                // Spieler fällt und trifft Plattform (Boden)
+                // Die neue pos.y muss so sein, dass die UNTERE Seite der Kollisionsbox
+                // an der OBEREN Seite der Plattform anliegt.
+                // Untere Seite der Kollisionsbox: (pos.y + collisionOffsetY + playerCollisionBounds.height)
+                // Gewünscht: pos.y + collisionOffsetY + playerCollisionBounds.height = platform.y
+                // Daraus folgt: pos.y = platform.y - playerCollisionBounds.height - collisionOffsetY
+                pos.y = platform.y - playerCollisionBounds.height - collisionOffsetY;
                 vel.y = 0;
                 canJump = true;
             }
             else if (vel.y < 0)
             {
-                pos.y = platform.y + platform.height;
+                // Spieler springt hoch und trifft Plattform (Decke)
+                // Die neue pos.y muss so sein, dass die OBERE Seite der Kollisionsbox
+                // an der UNTEREN Seite der Plattform anliegt.
+                // Obere Seite der Kollisionsbox: (pos.y + collisionOffsetY)
+                // Gewünscht: pos.y + collisionOffsetY = platform.y + platform.height
+                // Daraus folgt: pos.y = platform.y + platform.height - collisionOffsetY
+                pos.y = platform.y + platform.height - collisionOffsetY;
                 vel.y = 0;
             }
         }
@@ -240,34 +274,40 @@ void Player::update(float delta, const std::vector<Rectangle> &platforms)
     }
 }
 
-void Player::applyKnockback(Vector2 enemyPosition) {
+void Player::applyKnockback(Vector2 enemyPosition)
+{
     // Berechne die Positionen
     Vector2 playerCenter = {pos.x + size.x / 2.0f, pos.y + size.y / 2.0f};
-    
+
     // === HORIZONTALER KNOCKBACK ===
     float horizontalDirection = playerCenter.x - enemyPosition.x;
-    
+
     // Normalisiere die horizontale Richtung
-    if (horizontalDirection > 0) {
-        horizontalDirection = 1.0f;  // Player ist rechts vom Enemy -> nach rechts stoßen
-    } else if (horizontalDirection < 0) {
+    if (horizontalDirection > 0)
+    {
+        horizontalDirection = 1.0f; // Player ist rechts vom Enemy -> nach rechts stoßen
+    }
+    else if (horizontalDirection < 0)
+    {
         horizontalDirection = -1.0f; // Player ist links vom Enemy -> nach links stoßen
-    } else {
+    }
+    else
+    {
         // Fallback: Zufällige Richtung
         horizontalDirection = (rand() % 2 == 0) ? 1.0f : -1.0f;
     }
-    
+
     // === SETZE KNOCKBACK-GESCHWINDIGKEIT ===
     float horizontalForce = 250.0f;
-    float verticalForce = -300.0f;  // Stärker nach oben
-    
+    float verticalForce = -300.0f; // Stärker nach oben
+
     vel.x = horizontalDirection * horizontalForce;
     vel.y = verticalForce;
-    
+
     // === AKTIVIERE KNOCKBACK-ZUSTAND ===
-    knockbackTime = KNOCKBACK_DURATION;  // 0.3 Sekunden Knockback
-    
-    TraceLog(LOG_INFO, "Knockback aktiviert! H=%.1f, V=%.1f, Dauer=%.2f", 
+    knockbackTime = KNOCKBACK_DURATION; // 0.3 Sekunden Knockback
+
+    TraceLog(LOG_INFO, "Knockback aktiviert! H=%.1f, V=%.1f, Dauer=%.2f",
              vel.x, vel.y, knockbackTime);
 }
 
@@ -277,20 +317,21 @@ void Player::draw() const
     int columns = 1;
     int rows = 1;
 
-    switch (currentAnimState) {
-        case AnimState::IDLE:
-            currentSprite = spriteIdle;
-            break;
-        case AnimState::RUNNING:
-            currentSprite = spriteRun;
-            columns = 3;
-            rows = 3;
-            break;
-        case AnimState::JUMPING:
-            currentSprite = spriteJump;
-            columns = 3;
-            rows = 4;
-            break;
+    switch (currentAnimState)
+    {
+    case AnimState::IDLE:
+        currentSprite = spriteIdle;
+        break;
+    case AnimState::RUNNING:
+        currentSprite = spriteRun;
+        columns = 3;
+        rows = 3;
+        break;
+    case AnimState::JUMPING:
+        currentSprite = spriteJump;
+        columns = 3;
+        rows = 4;
+        break;
     }
 
     float frameWidth = (float)currentSprite.width / columns;
@@ -303,8 +344,7 @@ void Player::draw() const
         (float)currentCol * frameWidth,
         (float)currentRow * frameHeight,
         frameWidth,
-        frameHeight
-    };
+        frameHeight};
 
     if (!facingRight)
     {
@@ -312,22 +352,23 @@ void Player::draw() const
     }
 
     Rectangle destRec = getBounds();
-    
+
     // NEU: Damage Blink Effect
     Color tint = WHITE;
-    if (damageBlinkTime > 0.0f) {
+    if (damageBlinkTime > 0.0f)
+    {
         // Blinke zwischen rot und weiß
-        float blinkSpeed = 15.0f;  // Wie schnell blinken
-        if (sinf(GetTime() * blinkSpeed) > 0) {
-            tint = {255, 100, 100, 255};  // Rötlicher Tint
+        float blinkSpeed = 15.0f; // Wie schnell blinken
+        if (sinf(GetTime() * blinkSpeed) > 0)
+        {
+            tint = {255, 100, 100, 255}; // Rötlicher Tint
         }
     }
-    
+
     DrawTexturePro(currentSprite, sourceRec, destRec, {0, 0}, 0, tint);
 
-    Rectangle bounds = getBounds();
-    DrawRectangleLines(bounds.x + 16, bounds.y + 16, bounds.width -42 , bounds.height - 14, GREEN);
+    Rectangle bounds = getCollisionBounds();
+    DrawRectangleLines(bounds.x, bounds.y, bounds.width, bounds.height, GREEN);
 
     DrawCircleV(getCenter(), 5, RED);
 }
-

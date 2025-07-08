@@ -32,10 +32,10 @@ public:
 
     Rectangle getCollisionBounds() const {
         return { 
-            pos.x ,        // Deine gefundenen Werte
-            pos.y , 
-            size.x - 42,       // 58 Pixel breit
-            size.y - 14        // 86 Pixel hoch
+            pos.x +16,        
+            pos.y + 20, 
+            size.x - 46,       // 58 Pixel breit
+            size.y -30       
         };
     }
 
