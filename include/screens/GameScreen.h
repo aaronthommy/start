@@ -45,6 +45,8 @@ private:
     void drawHearts() const;
     void applyScreenShake(float intensity, float duration); 
     void restartLevel(); 
+
+    float levelDeathHeight = 1500.0f;
     float enemyCollisionCooldown = 0.0f;
 
     bool playerDead = false;

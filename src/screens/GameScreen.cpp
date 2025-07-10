@@ -86,6 +86,15 @@ void GameScreen::load(LevelManager *levelManager, int levelIndex)
                                     layerData["scroll_speed"]});
     }
 
+    if (data.contains("deathHeight"))
+    {
+        levelDeathHeight = data["deathHeight"];
+    }
+    else
+    {
+        levelDeathHeight = 2000.0f; // Fallback für alte Level ohne deathHeight
+    }
+
     // Lade Player
     player.load();
     player.reset();
@@ -153,14 +162,15 @@ void GameScreen::load(LevelManager *levelManager, int levelIndex)
             // Registriere Enemy beim CombatSystem
             combatSystem.registerEnemy(&enemies.back());
 
+            TraceLog(LOG_INFO, "Level Death Height: %.1f", levelDeathHeight);
             TraceLog(LOG_INFO, "Enemy geladen: %s at (%.1f, %.1f)",
                      enemyType.c_str(), (float)eData["x"], (float)eData["y"]);
         }
     }
 }
 
-
-void GameScreen::applyScreenShake(float intensity, float duration) {
+void GameScreen::applyScreenShake(float intensity, float duration)
+{
     screenShakeIntensity = intensity;
     screenShakeTime = duration;
 }
@@ -176,42 +186,60 @@ void GameScreen::update()
 
     float deltaTime = GetFrameTime();
 
-     // === NEU: PLAYER DEATH CHECK ===
-    if (!playerDead && player.getCurrentHP() <= 0.0f) {
+    // === NEU: PLAYER DEATH CHECK ===
+    if (!playerDead && player.getCurrentHP() <= 0.0f)
+    {
         // Player ist gestorben
         playerDead = true;
         deathTimer = DEATH_DELAY;
-        
+
         // Dramatic Screen Shake beim Tod
         applyScreenShake(8.0f, 1.0f);
-        
+
         TraceLog(LOG_INFO, "Player gestorben! Level wird in %.1f Sekunden neu gestartet.", DEATH_DELAY);
     }
-    
+
+    if (!playerDead && player.getPosition().y > levelDeathHeight)
+    {
+        // Player ist ins Void gefallen
+        playerDead = true;
+        deathTimer = DEATH_DELAY;
+
+        // Dramatic Screen Shake beim Void Fall
+        applyScreenShake(5.0f, 1.2f);
+
+        TraceLog(LOG_INFO, "Player ins Void gefallen! Y=%.1f, DeathHeight=%.1f",
+                 player.getPosition().y, levelDeathHeight);
+    }
+
     // === DEATH TIMER & RESTART ===
-    if (playerDead) {
+    if (playerDead)
+    {
         deathTimer -= deltaTime;
-        
-        if (deathTimer <= 0.0f) {
+
+        if (deathTimer <= 0.0f)
+        {
             // Level neu starten
             restartLevel();
-            return;  // Wichtig: Verhindere weitere Updates in diesem Frame
+            return; // Wichtig: Verhindere weitere Updates in diesem Frame
         }
-        
+
         // Während Death Timer läuft, normale Updates pausieren
         return;
     }
 
     // === NORMALE GAME UPDATES (nur wenn Player lebt) ===
     // Screen Shake Update
-    if (screenShakeTime > 0.0f) {
+    if (screenShakeTime > 0.0f)
+    {
         screenShakeTime -= deltaTime;
-        
+
         float intensity = screenShakeIntensity * (screenShakeTime / 0.3f);
         screenShakeOffset.x = (float)(rand() % 20 - 10) * intensity * 0.1f;
         screenShakeOffset.y = (float)(rand() % 20 - 10) * intensity * 0.1f;
-        
-        if (screenShakeTime <= 0.0f) {
+
+        if (screenShakeTime <= 0.0f)
+        {
             screenShakeOffset = {0, 0};
         }
     }
@@ -253,9 +281,9 @@ void GameScreen::update()
                     player.takeDamage(0.5f);
                     player.applyKnockback(enemy.getCenter());
                     enemyCollisionCooldown = 1.0f;
-                    
+
                     // NEU: Screen Shake bei Player-Schaden!
-                    applyScreenShake(1.0f, 0.9f);  // Intensity 3.0, Duration 0.3s
+                    applyScreenShake(1.0f, 0.9f); // Intensity 3.0, Duration 0.3s
 
                     TraceLog(LOG_INFO, "Player von Enemy berührt! Schaden: 0.5, Player HP: %d",
                              player.getCurrentHP());
@@ -268,38 +296,42 @@ void GameScreen::update()
 
     // === NEU: HEART-DROP UPDATE ===
     // Update Heart-Drops
-    for (auto& drop : heartDrops) {
+    for (auto &drop : heartDrops)
+    {
         drop.lifetime -= deltaTime;
-        
+
         // Kollision mit Player prüfen
-        if (!drop.collected) {
+        if (!drop.collected)
+        {
             Rectangle dropBounds = {drop.position.x, drop.position.y, 25, 25};
             Rectangle playerBounds = player.getBounds();
-            
-            if (CheckCollisionRecs(dropBounds, playerBounds)) {
+
+            if (CheckCollisionRecs(dropBounds, playerBounds))
+            {
                 // Player sammelt Herz
                 float currentHP = player.getCurrentHP();
                 float maxHP = player.getMaxHP();
-                
-                if (currentHP < maxHP) {  // Nur heilen wenn nicht voll
-                    player.takeDamage(-0.5f);  // Negative damage = Heilung
+
+                if (currentHP < maxHP)
+                {                             // Nur heilen wenn nicht voll
+                    player.takeDamage(-0.5f); // Negative damage = Heilung
                     drop.collected = true;
-                    
-                    TraceLog(LOG_INFO, "Heart-Drop gesammelt! Player HP: %d", 
+
+                    TraceLog(LOG_INFO, "Heart-Drop gesammelt! Player HP: %d",
                              player.getCurrentHP());
                 }
             }
         }
     }
-    
+
     // Entferne abgelaufene oder gesammelte Heart-Drops
     heartDrops.erase(
         std::remove_if(heartDrops.begin(), heartDrops.end(),
-            [](const HeartDrop& drop) {
-                return drop.collected || drop.lifetime <= 0.0f;
-            }),
-        heartDrops.end()
-    );
+                       [](const HeartDrop &drop)
+                       {
+                           return drop.collected || drop.lifetime <= 0.0f;
+                       }),
+        heartDrops.end());
 
     // Handle Player Abilities
     if (IsMouseButtonDown(MOUSE_BUTTON_LEFT))
@@ -313,24 +345,27 @@ void GameScreen::update()
 
     // === MODIFIZIERTE ENEMY-CLEANUP MIT HEART-DROPS ===
     size_t enemiesBeforeCleanup = enemies.size();
-    
+
     // Prüfe welche Enemies gerade gestorben sind für Heart-Drops
-    for (const auto& enemy : enemies) {
-        if (enemy.isDead()) {
+    for (const auto &enemy : enemies)
+    {
+        if (enemy.isDead())
+        {
             // 30% Chance für Heart-Drop
-            if (rand() % 100 < 30) {
+            if (rand() % 100 < 30)
+            {
                 HeartDrop drop;
                 drop.position = enemy.getCenter();
                 drop.position.x -= 12.5f; // Zentriere das 25x25 Herz
                 drop.position.y -= 12.5f;
                 heartDrops.push_back(drop);
-                
-                TraceLog(LOG_INFO, "Heart-Drop gespawnt bei (%.1f, %.1f)", 
+
+                TraceLog(LOG_INFO, "Heart-Drop gespawnt bei (%.1f, %.1f)",
                          drop.position.x, drop.position.y);
             }
         }
     }
-    
+
     enemies.erase(
         std::remove_if(enemies.begin(), enemies.end(),
                        [](const Enemy &enemy)
@@ -376,8 +411,8 @@ void GameScreen::draw() const
     Camera2D shakeCamera = camera;
     shakeCamera.offset.x += screenShakeOffset.x;
     shakeCamera.offset.y += screenShakeOffset.y;
-    
-    BeginMode2D(shakeCamera);  // Verwende shakeCamera statt camera
+
+    BeginMode2D(shakeCamera); // Verwende shakeCamera statt camera
 
     // Zeichne Platforms - UNVERÄNDERT
     for (const auto &platform : platforms)
@@ -398,37 +433,38 @@ void GameScreen::draw() const
 
     // Zeichne Player - UNVERÄNDERT
     player.draw();
-    
+
     // Zeichne Enemies - UNVERÄNDERT
     for (const auto &enemy : enemies)
     {
         enemy.draw();
     }
-    
+
     // === NEU: ZEICHNE HEART-DROPS ===
-    for (const auto& drop : heartDrops) {
-        if (!drop.collected) {
+    for (const auto &drop : heartDrops)
+    {
+        if (!drop.collected)
+        {
             // Pulsing-Effekt
             float pulse = sinf(GetTime() * 8.0f) * 0.1f + 0.9f;
             float size = 25.0f * pulse;
-            
+
             Rectangle destRect = {
                 drop.position.x + (25.0f - size) / 2.0f,
                 drop.position.y + (25.0f - size) / 2.0f,
-                size, size
-            };
-            
-            DrawTextureEx(halfHeartTexture, 
-                         {destRect.x, destRect.y}, 
-                         0.0f, 
-                         size / 100.0f,  // Scale factor (da Textur 100x100 ist)
-                         WHITE);
-                         
+                size, size};
+
+            DrawTextureEx(halfHeartTexture,
+                          {destRect.x, destRect.y},
+                          0.0f,
+                          size / 100.0f, // Scale factor (da Textur 100x100 ist)
+                          WHITE);
+
             // DEBUG: Zeichne auch einen kleinen Kreis zur Visualisierung
             DrawCircle(drop.position.x + 12.5f, drop.position.y + 12.5f, 3, YELLOW);
         }
     }
-    
+
     // Zeichne Combat System (Projektile, etc.) - UNVERÄNDERT
     combatSystem.draw();
 
@@ -437,25 +473,26 @@ void GameScreen::draw() const
     // UI Elements - UNVERÄNDERT
     drawHearts();
 
-    if (playerDead) {
+    if (playerDead)
+    {
         // Dunkler Overlay
-        DrawRectangle(0, 0, VIRTUAL_SCREEN_WIDTH, VIRTUAL_SCREEN_HEIGHT, 
-                     {0, 0, 0, 150});  // Halbtransparentes Schwarz
-        
+        DrawRectangle(0, 0, VIRTUAL_SCREEN_WIDTH, VIRTUAL_SCREEN_HEIGHT,
+                      {0, 0, 0, 150}); // Halbtransparentes Schwarz
+
         // Death Message
-        const char* deathText = "You Died!";
+        const char *deathText = "You Died!";
         int textWidth = MeasureText(deathText, 60);
         int x = (VIRTUAL_SCREEN_WIDTH - textWidth) / 2;
         int y = VIRTUAL_SCREEN_HEIGHT / 2 - 60;
-        
+
         DrawText(deathText, x, y, 60, RED);
-        
+
         // Restart Timer
-        const char* restartText = TextFormat("Restarting in %.1f...", deathTimer);
+        const char *restartText = TextFormat("Restarting in %.1f...", deathTimer);
         int restartWidth = MeasureText(restartText, 30);
         int restartX = (VIRTUAL_SCREEN_WIDTH - restartWidth) / 2;
         int restartY = y + 80;
-        
+
         DrawText(restartText, restartX, restartY, 30, WHITE);
     }
 }
@@ -490,63 +527,70 @@ void GameScreen::unload()
 
 void GameScreen::drawHearts() const
 {
-    float maxHp = player.getMaxHP();  // Verwende float statt int
-    float currentHp = player.getCurrentHP();  // Verwende float statt int
-    
+    float maxHp = player.getMaxHP();         // Verwende float statt int
+    float currentHp = player.getCurrentHP(); // Verwende float statt int
+
     float heartSize = 30.0f;
     float padding = 10.0f;
 
     // Zeichne Herzen basierend auf halben Herzen (0.5 Schritte)
-    int fullHearts = (int)maxHp;  // Anzahl der vollen Herzen zum Zeichnen
-    
+    int fullHearts = (int)maxHp; // Anzahl der vollen Herzen zum Zeichnen
+
     for (int i = 0; i < fullHearts; ++i)
     {
         float x = 20.0f + i * (heartSize + padding);
         float y = 20.0f;
-        
-        float heartValue = (float)i + 1.0f;  // Das i-te Herz repräsentiert HP von i+1
-        
-        if (currentHp >= heartValue) {
+
+        float heartValue = (float)i + 1.0f; // Das i-te Herz repräsentiert HP von i+1
+
+        if (currentHp >= heartValue)
+        {
             // Volles Herz
             DrawTextureEx(heartTexture, {x, y}, 0.0f, heartSize / 100.0f, WHITE);
-        } else if (currentHp >= heartValue - 0.5f) {
+        }
+        else if (currentHp >= heartValue - 0.5f)
+        {
             // Halbes Herz
             DrawTextureEx(halfHeartTexture, {x, y}, 0.0f, heartSize / 100.0f, WHITE);
-        } else {
+        }
+        else
+        {
             // Leeres Herz
             DrawTextureEx(emptyHeartTexture, {x, y}, 0.0f, heartSize / 100.0f, WHITE);
         }
     }
-    
+
     // DEBUG: Zeige exakte HP-Werte
     DrawText(TextFormat("HP: %.1f/%.1f", currentHp, maxHp), 20, 60, 20, WHITE);
 }
 
-void GameScreen::restartLevel() {
+void GameScreen::restartLevel()
+{
     TraceLog(LOG_INFO, "Level wird neu gestartet...");
-    
+
     // Reset Player
     player.reset();
-    player.setPosition({100, 100});  // Oder aus level JSON laden
-    
+    player.setPosition({100, 100}); // Oder aus level JSON laden
+
     // Reset Game State
     playerDead = false;
     deathTimer = 0.0f;
     enemyCollisionCooldown = 0.0f;
-    
+
     // Reset Screen Shake
     screenShakeTime = 0.0f;
     screenShakeIntensity = 0.0f;
     screenShakeOffset = {0, 0};
-    
+
     // Clear Heart-Drops
     heartDrops.clear();
-    
+
     // Reset Camera
     camera.target = player.getPosition();
-    
+
     // Enemies müssen wir neu laden - am einfachsten das ganze Level neu laden
-    if (levelMgr && currentLevel >= 0) {
+    if (levelMgr && currentLevel >= 0)
+    {
         load(levelMgr, currentLevel);
     }
 }

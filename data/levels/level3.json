@@ -319,5 +319,6 @@
             "attackDamage": 12,
             "texturePath": "assets/sprites/enemies/duck-100x100.png"
         }
-    ]
+    ],
+    "deathHeight": 1500.0
 }
