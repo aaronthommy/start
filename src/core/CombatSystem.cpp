@@ -21,7 +21,7 @@ void CombatSystem::update(float dt, const std::vector<Rectangle>& platforms)
             continue;
         }
 
-        Rectangle projBounds = proj.getBounds(); // Hol die Bounding Box des Projektils
+        Rectangle projBounds = proj.getCollisionBounds();
         
         // Kollision mit Plattformen (bestehende Logik)
         for (const auto& platformRect : platforms) {

@@ -10,7 +10,8 @@ public:
 
     // Statische Funktionen, die einmalig vom GameScreen aufgerufen werden
 
-    Rectangle getBounds() const;
+    Rectangle getBounds() const;           // Für Sprite-Zeichnung (unverändert)
+    Rectangle getCollisionBounds() const;
     
     static void loadTexture();
     static void unloadTexture();
@@ -19,6 +20,10 @@ public:
     Vector2 position;
     Vector2 velocity;
     Vector2 size = {32, 32}; 
+
+    float collisionOffsetX = -3.0f;   // Horizontal-Offset (anpassbar)
+    float collisionOffsetY = -3.0f;   // Vertikal-Offset (anpassbar)
+    Vector2 collisionSize = {16, 16};
 
 private:
     // Die Textur ist 'static', d.h. alle Projektile teilen sich dieselbe.
