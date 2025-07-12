@@ -2,9 +2,10 @@
 #include "raylib.h"
 #include "core/LevelManager.h"
 #include "core/Player.h"
-#include "core/Enemy.h"  // NEU: Enemy include
+#include "core/Enemy.h" // NEU: Enemy include
 #include <functional>
 #include "core/CombatSystem.h"
+#include "GoalFlag.h"
 #include <vector>
 #include <string>
 #include <map>
@@ -22,9 +23,10 @@ struct Platform
     std::string textureId; // Z.B. "grass", "stone", ...
 };
 
-struct HeartDrop {
+struct HeartDrop
+{
     Vector2 position;
-    float lifetime = 10.0f;  // 10 Sekunden bevor es verschwindet
+    float lifetime = 10.0f; // 10 Sekunden bevor es verschwindet
     bool collected = false;
 };
 
@@ -43,15 +45,19 @@ public:
 
 private:
     void drawHearts() const;
-    void applyScreenShake(float intensity, float duration); 
-    void restartLevel(); 
+    void applyScreenShake(float intensity, float duration);
+    void restartLevel();
 
     float levelDeathHeight = 1500.0f;
     float enemyCollisionCooldown = 0.0f;
 
+    GoalFlag *levelGoal = nullptr;
+    bool levelCompleted = false;
+    float completionTimer = 0.0f;
+
     bool playerDead = false;
     float deathTimer = 0.0f;
-    const float DEATH_DELAY = 1.5f; 
+    const float DEATH_DELAY = 1.5f;
 
     float screenShakeTime = 0.0f;
     float screenShakeIntensity = 0.0f;
@@ -67,7 +73,7 @@ private:
 
     std::vector<ParallaxLayer> backgroundLayers;
     std::vector<Platform> platforms;
-    std::vector<Enemy> enemies;  // NEU: Enemy-Vektor
+    std::vector<Enemy> enemies; // NEU: Enemy-Vektor
 
     std::map<std::string, Texture2D> platformTextures;
     std::function<void()> onFinish;

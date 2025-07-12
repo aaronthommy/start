@@ -100,6 +100,18 @@ void GameScreen::load(LevelManager *levelManager, int levelIndex)
     player.reset();
     Projectile::loadTexture();
 
+    if (data.contains("goal"))
+    {
+        Vector2 goalPos = {
+            data["goal"]["x"],
+            data["goal"]["y"]};
+        levelGoal = new GoalFlag(goalPos);
+    }
+    else
+    {
+        levelGoal = nullptr;
+    }
+
     heartTexture = LoadTexture("assets/ui/hearts/heart100x100.png");
     halfHeartTexture = LoadTexture("assets/ui/hearts/half-heart100x100.png");
     emptyHeartTexture = LoadTexture("assets/ui/hearts/empty-heart100x100.png");
@@ -384,6 +396,17 @@ void GameScreen::update()
 
         TraceLog(LOG_INFO, "Tote Enemies entfernt. Verbleibende Enemies: %zu", enemies.size());
     }
+    if (!levelCompleted && levelGoal &&
+        levelGoal->isPlayerTouching(player.getBounds()))
+    {
+        // Level abgeschlossen!
+        levelCompleted = true;
+        completionTimer = 3.0f; // 3 Sekunden Celebration
+
+        // Screen Shake & Effekte
+        applyScreenShake(2.0f, 1.0f);
+        TraceLog(LOG_INFO, "Level completed!");
+    }
 }
 
 void GameScreen::draw() const
@@ -433,6 +456,11 @@ void GameScreen::draw() const
 
     // Zeichne Player - UNVERÄNDERT
     player.draw();
+
+    if (levelGoal)
+    {
+        levelGoal->draw();
+    }
 
     // Zeichne Enemies - UNVERÄNDERT
     for (const auto &enemy : enemies)
@@ -518,6 +546,12 @@ void GameScreen::unload()
 
     // Entlade Enemy-Texturen (werden automatisch im Enemy-Destruktor entladen)
     enemies.clear();
+
+    if (levelGoal)
+    {
+        delete levelGoal;
+        levelGoal = nullptr;
+    }
 
     // Entlade UI-Texturen
     UnloadTexture(heartTexture);

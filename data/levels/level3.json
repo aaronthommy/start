@@ -9,6 +9,11 @@
         "x": 200,
         "y": 880
     },
+    "goal": {
+        "x": 5600,
+        "y": 980,
+        "type": "flag"
+    },
     "platforms": [
         { "x": 100, "y": 980, "width": 400, "height": 100, "texture_id": "grass" },
         { "x": 600, "y": 900, "width": 200, "height": 40, "texture_id": "grass" },
