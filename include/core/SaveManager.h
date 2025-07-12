@@ -27,6 +27,7 @@ public:
     bool load();
     void save() const;
     SaveData& data();
+    void reset();
 private:
     SaveData m_data;
     std::string path() const;   // Plattformabhängig

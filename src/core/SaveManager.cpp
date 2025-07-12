@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <fstream>            // <-- NEU
 #include <cstdlib>
+#include "raylib.h"
 
 using json = nlohmann::json;
 
@@ -147,4 +148,21 @@ void SaveManager::save() const {
         file << j.dump(4);  // Pretty-print with 4 spaces indent
         file.close();
     }
+}
+
+void SaveManager::reset() {
+    // Alle Daten auf Standard zurücksetzen
+    m_data = SaveData{};
+    
+    // Save-Datei löschen
+    std::string savePath = path();
+    if (std::filesystem::exists(savePath)) {
+        std::filesystem::remove(savePath);
+        TraceLog(LOG_INFO, "Save file deleted: %s", savePath.c_str());
+    }
+    
+    // Leeren Save-State speichern
+    save();
+    
+    TraceLog(LOG_INFO, "SaveManager reset - all progress cleared");
 }

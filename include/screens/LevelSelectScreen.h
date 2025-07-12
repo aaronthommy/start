@@ -34,6 +34,7 @@ public:
     void unload();
     void update();
     void draw() const;
+    void refresh();
 
     void setOnBack(std::function<void()> cb) { onBack = std::move(cb); }
     void setOnStart(std::function<void(int)> cb) { onStart = std::move(cb); }

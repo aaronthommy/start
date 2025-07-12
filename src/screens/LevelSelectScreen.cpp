@@ -1,6 +1,6 @@
 #include "screens/LevelSelectScreen.h"
 #include "config.h"
-#include "core/SaveManager.h" 
+#include "core/SaveManager.h"
 #include <cmath>
 
 LevelSelectScreen::LevelSelectScreen()
@@ -32,49 +32,56 @@ void LevelSelectScreen::load(LevelManager *manager)
     setupLevelCards();
 }
 
-void LevelSelectScreen::setupLevelCards() {
+void LevelSelectScreen::setupLevelCards()
+{
     levelCards.clear();
-    
+
     // Save-Daten laden
     SaveManager saveManager;
     saveManager.load();
-    
-    for (int i = 0; i < levelMgr->count(); ++i) {
-        const LevelInfo& info = levelMgr->get(i);
-        
+
+    for (int i = 0; i < levelMgr->count(); ++i)
+    {
+        const LevelInfo &info = levelMgr->get(i);
+
         LevelCard card;
         card.levelIndex = i;
         card.name = info.name;
         card.description = "Jump and run adventure!";
-        
+
         // Calculate grid position
         int row = i / cardsPerRow;
         int col = i % cardsPerRow;
-        
+
         card.bounds = {
             gridStart.x + col * (cardSize.x + cardSpacing.x),
             gridStart.y + row * (cardSize.y + cardSpacing.y),
             cardSize.x,
-            cardSize.y
-        };
-        
+            cardSize.y};
+
         // NEU: Status aus Save-Daten bestimmen
-        if (saveManager.data().isLevelCompleted(i)) {
+        if (saveManager.data().isLevelCompleted(i))
+        {
             card.status = LevelStatus::COMPLETED;
             // Beste Zeit laden
-            if (saveManager.data().levelBestTimes.find(i) != saveManager.data().levelBestTimes.end()) {
+            if (saveManager.data().levelBestTimes.find(i) != saveManager.data().levelBestTimes.end())
+            {
                 card.bestTime = saveManager.data().levelBestTimes.at(i);
             }
-        } else if (saveManager.data().isLevelUnlocked(i)) {
+        }
+        else if (saveManager.data().isLevelUnlocked(i))
+        {
             card.status = LevelStatus::AVAILABLE;
-        } else {
+        }
+        else
+        {
             card.status = LevelStatus::LOCKED;
         }
-        
+
         // Load thumbnail (fallback to default if not found)
-        const char* thumbnailPath = TextFormat("assets/ui/level_%d_thumb.png", i + 1);
+        const char *thumbnailPath = TextFormat("assets/ui/level_%d_thumb.png", i + 1);
         card.thumbnail = LoadTexture(thumbnailPath);
-        
+
         levelCards.push_back(card);
     }
 }
@@ -147,6 +154,14 @@ void LevelSelectScreen::update()
         PlaySound(hoverSound);
     }
 
+    if (IsKeyDown(KEY_LEFT_SHIFT) && IsKeyPressed(KEY_R))
+    {
+        SaveManager saveManager;
+        saveManager.reset();
+        refresh(); // Sofort Level-Status aktualisieren
+        TraceLog(LOG_INFO, "DEBUG: Save progress reset!");
+    }
+
     // Update hover states for keyboard selection
     for (size_t i = 0; i < levelCards.size(); ++i)
     {
@@ -180,6 +195,40 @@ void LevelSelectScreen::update()
     }
 
     updateCardAnimations(deltaTime);
+}
+
+void LevelSelectScreen::refresh()
+{
+    // Nur Level-Status aktualisieren, ohne Assets neu zu laden
+    SaveManager saveManager;
+    saveManager.load();
+
+    // Update nur den Status der bestehenden Cards
+    for (auto &card : levelCards)
+    {
+        int i = card.levelIndex;
+
+        // Status aus Save-Daten neu bestimmen
+        if (saveManager.data().isLevelCompleted(i))
+        {
+            card.status = LevelStatus::COMPLETED;
+            // Beste Zeit aktualisieren
+            if (saveManager.data().levelBestTimes.find(i) != saveManager.data().levelBestTimes.end())
+            {
+                card.bestTime = saveManager.data().levelBestTimes.at(i);
+            }
+        }
+        else if (saveManager.data().isLevelUnlocked(i))
+        {
+            card.status = LevelStatus::AVAILABLE;
+        }
+        else
+        {
+            card.status = LevelStatus::LOCKED;
+        }
+    }
+
+    TraceLog(LOG_INFO, "LevelSelectScreen refreshed - Level status updated");
 }
 
 void LevelSelectScreen::updateCardAnimations(float deltaTime)
@@ -352,7 +401,6 @@ void LevelSelectScreen::drawStatusIcon(const LevelCard &card) const
     }
 }
 
-
 void LevelSelectScreen::drawCardInfo(const LevelCard &card) const
 {
     // Level name
@@ -385,16 +433,20 @@ void LevelSelectScreen::drawCardInfo(const LevelCard &card) const
 
 void LevelSelectScreen::unload()
 {
-    UnloadTexture(backgroundTexture);
-    UnloadTexture(cardFrameTexture);
-    UnloadTexture(lockedIcon);
-    UnloadTexture(completedIcon);
-    UnloadFont(titleFont);
-    UnloadFont(cardFont);
-    UnloadSound(hoverSound);
-    UnloadSound(selectSound);
+    // Sichere Entladung mit Checks
+    if (backgroundTexture.id > 0)
+        UnloadTexture(backgroundTexture);
+    if (cardFrameTexture.id > 0)
+        UnloadTexture(cardFrameTexture);
+    if (lockedIcon.id > 0)
+        UnloadTexture(lockedIcon);
+    if (completedIcon.id > 0)
+        UnloadTexture(completedIcon);
+    if (titleFont.baseSize > 0)
+        UnloadFont(titleFont);
+    if (cardFont.baseSize > 0)
+        UnloadFont(cardFont);
 
-    // Unload level thumbnails
     for (LevelCard &card : levelCards)
     {
         if (card.thumbnail.id > 0)
