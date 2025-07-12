@@ -5,10 +5,15 @@
 #include "core/Enemy.h" // NEU: Enemy include
 #include <functional>
 #include "core/CombatSystem.h"
+#include "core/SaveManager.h"
 #include "GoalFlag.h"
 #include <vector>
 #include <string>
 #include <map>
+
+/*
+madita und nele  und  aaron
+*/
 
 // Eine kleine Struktur, die eine Ebene unseres Parallax-Hintergrunds beschreibt
 struct ParallaxLayer
@@ -50,6 +55,20 @@ private:
 
     float levelDeathHeight = 1500.0f;
     float enemyCollisionCooldown = 0.0f;
+
+    bool showingLevelComplete = false;
+    float levelCompleteTimer = 0.0f;
+    float levelStartTime = 0.0f;
+    float levelPlayTime = 0.0f;
+    int earnedStars = 0;
+
+    Font titleFont; 
+    Font cardFont;
+
+    SaveManager saveManager; // Save-System
+
+    void drawLevelCompleteOverlay() const;
+    void completeLevel();
 
     GoalFlag *levelGoal = nullptr;
     bool levelCompleted = false;

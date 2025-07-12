@@ -64,6 +64,75 @@ GameScreen::~GameScreen()
     unload();
 }
 
+void GameScreen::completeLevel()
+{
+    levelCompleted = true;
+    showingLevelComplete = true;
+    levelCompleteTimer = 4.0f; // 4 Sekunden Anzeige
+
+    // Spielzeit berechnen
+    levelPlayTime = GetTime() - levelStartTime;
+
+    // Level im Save-System als abgeschlossen markieren
+    saveManager.data().completeLevel(currentLevel, levelPlayTime);
+    saveManager.save();
+
+    // Sterne berechnen für Anzeige
+    earnedStars = saveManager.data().levelStars[currentLevel];
+
+    // Effekte
+    applyScreenShake(3.0f, 1.5f);
+
+    TraceLog(LOG_INFO, "Level %d completed in %.1f seconds! Stars: %d",
+             currentLevel, levelPlayTime, earnedStars);
+}
+
+void GameScreen::drawLevelCompleteOverlay() const
+{
+    // Dunkler Hintergrund
+    DrawRectangle(0, 0, VIRTUAL_SCREEN_WIDTH, VIRTUAL_SCREEN_HEIGHT,
+                  {0, 0, 0, 180});
+
+    // Haupttext: "LEVEL COMPLETE!"
+    const char *completeText = "LEVEL COMPLETE!";
+    int textSize = 60;
+    Vector2 textSize_v = MeasureTextEx(titleFont, completeText, textSize, 0);
+    Vector2 textPos = {
+        (VIRTUAL_SCREEN_WIDTH - textSize_v.x) / 2,
+        VIRTUAL_SCREEN_HEIGHT / 2 - 150};
+
+    // Glowing effect
+    DrawTextEx(titleFont, completeText, {textPos.x + 3, textPos.y + 3}, textSize, 0, {255, 215, 0, 100});
+    DrawTextEx(titleFont, completeText, textPos, textSize, 0, GOLD);
+
+    // Zeit-Anzeige
+    const char *timeText = TextFormat("Time: %.1f seconds", levelPlayTime);
+    Vector2 timeSize = MeasureTextEx(cardFont, timeText, 30, 0);
+    Vector2 timePos = {
+        (VIRTUAL_SCREEN_WIDTH - timeSize.x) / 2,
+        textPos.y + 100};
+    DrawTextEx(cardFont, timeText, timePos, 30, 0, WHITE);
+
+    // Sterne anzeigen
+    for (int i = 0; i < 3; ++i)
+    {
+        Vector2 starPos = {
+            (float)(VIRTUAL_SCREEN_WIDTH / 2 - 60 + i * 60),
+            timePos.y + 60
+        };
+        Color starColor = (i < earnedStars) ? GOLD : GRAY;
+        DrawText("★", (int)starPos.x, (int)starPos.y, 40, starColor);
+    }
+
+    // Instruktionen
+    const char *instrText = "Press ENTER to continue";
+    Vector2 instrSize = MeasureTextEx(cardFont, instrText, 20, 0);
+    Vector2 instrPos = {
+        (VIRTUAL_SCREEN_WIDTH - instrSize.x) / 2,
+        VIRTUAL_SCREEN_HEIGHT - 100};
+    DrawTextEx(cardFont, instrText, instrPos, 20, 0, {200, 200, 200, 255});
+}
+
 void GameScreen::load(LevelManager *levelManager, int levelIndex)
 {
     levelMgr = levelManager;
@@ -95,6 +164,14 @@ void GameScreen::load(LevelManager *levelManager, int levelIndex)
         levelDeathHeight = 2000.0f; // Fallback für alte Level ohne deathHeight
     }
 
+    levelStartTime = GetTime();
+    levelCompleted = false;
+    showingLevelComplete = false;
+    levelCompleteTimer = 0.0f;
+
+    // Save-Manager laden
+    saveManager.load();
+
     // Lade Player
     player.load();
     player.reset();
@@ -115,6 +192,9 @@ void GameScreen::load(LevelManager *levelManager, int levelIndex)
     heartTexture = LoadTexture("assets/ui/hearts/heart100x100.png");
     halfHeartTexture = LoadTexture("assets/ui/hearts/half-heart100x100.png");
     emptyHeartTexture = LoadTexture("assets/ui/hearts/empty-heart100x100.png");
+
+    titleFont = LoadFont("assets/fonts/Silkscreen-Bold.ttf");
+    cardFont = LoadFont("assets/fonts/Silkscreen-Regular.ttf");
 
     player.setPosition({data["player_start"]["x"], data["player_start"]["y"]});
     camera.target = player.getPosition();
@@ -403,9 +483,26 @@ void GameScreen::update()
         levelCompleted = true;
         completionTimer = 3.0f; // 3 Sekunden Celebration
 
+        completeLevel();
+
         // Screen Shake & Effekte
         applyScreenShake(2.0f, 1.0f);
         TraceLog(LOG_INFO, "Level completed!");
+    }
+    if (showingLevelComplete)
+    {
+        levelCompleteTimer -= GetFrameTime();
+
+        if (levelCompleteTimer <= 0.0f || IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE))
+        {
+            // Zurück zum Level Select
+            showingLevelComplete = false;
+            if (onFinish)
+            {
+                onFinish();
+            }
+            return;
+        }
     }
 }
 
@@ -523,12 +620,20 @@ void GameScreen::draw() const
 
         DrawText(restartText, restartX, restartY, 30, WHITE);
     }
+
+    if (showingLevelComplete)
+    {
+        drawLevelCompleteOverlay();
+    }
 }
 
 void GameScreen::unload()
 {
     player.unload();
     Projectile::unloadTexture();
+
+    UnloadFont(titleFont);
+    UnloadFont(cardFont);
 
     // Entlade Background-Texturen
     for (auto &layer : backgroundLayers)
